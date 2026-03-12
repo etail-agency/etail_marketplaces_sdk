@@ -1,0 +1,55 @@
+{
+  "_sdk_note": "Download the Mirakl Operator API spec from https://help.mirakl.net/help/api-doc/operator/ and replace this file. The coding agent uses this file to diff API changes and update marketplaces/mirakl/mappers.py accordingly.",
+  "_spec_url": "https://help.mirakl.net/help/api-doc/operator/",
+  "_auth": "Authorization header with API key (no Bearer prefix for most operators)",
+  "_note": "Mirakl is a white-label platform. Each operator (Galeries Lafayette, Leroy Merlin, etc.) may have customised field names. Verify fields against the specific operator's documentation.",
+  "_key_endpoints": {
+    "orders_list": "GET /api/orders (OR11)",
+    "order_by_id": "GET /api/orders/{orderId} (OR11)",
+    "offers": "GET /api/offers (OF21)",
+    "products": "GET /api/products (P11)"
+  },
+  "_known_fields_used_in_mappers": {
+    "order": [
+      "order_id",
+      "order_state",
+      "created_date",
+      "last_updated_date",
+      "currency_iso_code",
+      "total_price",
+      "total_shipping_price",
+      "customer.billing_address.firstname",
+      "customer.billing_address.lastname",
+      "customer.billing_address.street_1",
+      "customer.billing_address.street_2",
+      "customer.billing_address.zip_code",
+      "customer.billing_address.city",
+      "customer.billing_address.country.iso_code",
+      "customer.billing_address.phone",
+      "customer.billing_address.email",
+      "customer.shipping_address.firstname",
+      "order_lines[].offer_sku",
+      "order_lines[].offer_title",
+      "order_lines[].quantity",
+      "order_lines[].unit_price",
+      "order_lines[].taxes[].rate"
+    ],
+    "offer": [
+      "shop_sku",
+      "offer_id",
+      "quantity"
+    ],
+    "product": [
+      "shop_sku",
+      "product_sku",
+      "title",
+      "description",
+      "ean",
+      "brand",
+      "category_code",
+      "state",
+      "attributes[].code",
+      "attributes[].value"
+    ]
+  }
+}

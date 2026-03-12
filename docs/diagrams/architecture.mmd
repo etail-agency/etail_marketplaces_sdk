@@ -1,0 +1,70 @@
+flowchart TB
+
+    subgraph credentials [Credentials]
+        C1[ApiKeyCredentials]
+        C2[BearerCredentials]
+        C3[OAuth2Credentials]
+        C4[LengowCredentials]
+    end
+
+    subgraph aggregators [Aggregators]
+        direction TB
+        A1["LengowClient\n(aggregator_id=3)"]
+        A2["ShoppingFeedClient\n(aggregator_id=4)"]
+        A3["ChannelEngineClient\n(aggregator_id=6)"]
+    end
+
+    subgraph marketplaces [Marketplaces]
+        direction TB
+        M1["ManomanoClient\n(marketplace_id=259)"]
+        M2["MiraklClient\n(marketplace_id=varies)"]
+    end
+
+    subgraph mappers [Mappers per platform]
+        MAP["mappers.py\nraw dict → canonical model"]
+    end
+
+    subgraph models [Canonical Models]
+        direction LR
+        MOD1[Order]
+        MOD2[Invoice]
+        MOD3[StockLevel]
+        MOD4[Product]
+        MOD5[Shipment]
+        MOD6[Return]
+        MOD7[AnalyticsRecord]
+        MOD8[AdRecord]
+        MOD9[Settlement]
+        MOD10[Review]
+    end
+
+    subgraph outputs [Sink Connectors]
+        direction LR
+        O1[PostgresSinkConnector]
+        O2[SupabaseSinkConnector]
+        O3[BigQuerySinkConnector]
+    end
+
+    subgraph specs [OpenAPI Specs]
+        direction TB
+        S1[specs/aggregators/lengow/openapi.json]
+        S2[specs/aggregators/shopping_feed/openapi.json]
+        S3[specs/aggregators/channelengine/openapi.json]
+        S4[specs/marketplaces/manomano/openapi.json]
+        S5[specs/marketplaces/mirakl/openapi.json]
+    end
+
+    subgraph agent [Coding Agent workflow]
+        CA["1. Diff old vs new openapi.json\n2. Identify changed fields\n3. Update mappers.py only"]
+    end
+
+    credentials --> aggregators
+    credentials --> marketplaces
+
+    aggregators --> mappers
+    marketplaces --> mappers
+    mappers --> models
+    models --> outputs
+
+    specs -.->|"spec change triggers"| agent
+    agent -.->|"updates"| mappers

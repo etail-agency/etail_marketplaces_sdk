@@ -1,0 +1,45 @@
+{
+  "_sdk_note": "Download the official ManoMano Partner API spec from https://developer.manomano.com/ and replace this file. The coding agent uses this file to diff API changes and update marketplaces/manomano/mappers.py accordingly.",
+  "_spec_url": "https://developer.manomano.com/",
+  "_auth": "x-api-key header",
+  "_key_endpoints": {
+    "orders_list": "GET /orders/v1/orders",
+    "order_by_reference": "GET /orders/v1/orders?order_reference={ref}"
+  },
+  "_known_fields_used_in_mappers": {
+    "order": [
+      "order_reference",
+      "created_at",
+      "status_updated_at",
+      "status",
+      "total_price.amount",
+      "total_price.currency",
+      "shipping_price.amount",
+      "shipping_price_excluding_vat.amount",
+      "addresses.billing.firstname",
+      "addresses.billing.lastname",
+      "addresses.billing.address_line1",
+      "addresses.billing.address_line2",
+      "addresses.billing.zipcode",
+      "addresses.billing.city",
+      "addresses.billing.country",
+      "addresses.billing.phone",
+      "addresses.billing.email",
+      "addresses.shipping.firstname",
+      "addresses.shipping.lastname",
+      "addresses.shipping.address_line1",
+      "addresses.shipping.zipcode",
+      "addresses.shipping.city",
+      "addresses.shipping.country",
+      "products[].seller_sku",
+      "products[].title",
+      "products[].quantity",
+      "products[].price_excluding_vat.amount",
+      "products[].vat_rate"
+    ],
+    "pagination": [
+      "content",
+      "pagination.links.next"
+    ]
+  }
+}
