@@ -56,3 +56,9 @@ replace = 'version = "{new_version}"'
 file = "etail_marketplaces_sdk/__init__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.7.5",
+    "mkdocstrings[python]>=1.0.3",
+]
