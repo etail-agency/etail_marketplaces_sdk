@@ -1,0 +1,30 @@
+{
+  "_sdk_note": "Download the official ChannelEngine OpenAPI spec from https://api.channelengine.net/merchant and replace this file. The coding agent uses this file to diff API changes and update aggregators/channelengine/mappers.py accordingly.",
+  "_spec_url": "https://demo.channelengine.net/api/swagger/merchant/swagger.json",
+  "_auth": "API key passed as query parameter: ?apikey=<key>",
+  "_key_endpoints": {
+    "shipments_list": "GET /v2/shipments",
+    "shipment_by_channel_order_no": "GET /v2/shipments?channelOrderNos={orderNo}"
+  },
+  "_known_fields_used_in_mappers": {
+    "shipment": [
+      "ChannelOrderNo",
+      "MerchantShipmentNo",
+      "CreatedAt",
+      "UpdatedAt",
+      "Method",
+      "TrackAndTrace",
+      "Lines[].Quantity",
+      "Lines[].ChannelProductNo",
+      "Lines[].MerchantProductNo",
+      "Lines[].OrderLine.UnitPriceInclVat",
+      "Lines[].OrderLine.Description"
+    ],
+    "pagination": [
+      "Content",
+      "TotalCount",
+      "Count",
+      "ItemsPerPage"
+    ]
+  }
+}

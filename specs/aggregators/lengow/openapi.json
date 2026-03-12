@@ -1,0 +1,40 @@
+{
+  "_sdk_note": "Download the official Lengow OpenAPI spec from https://developers.lengow.com/ and replace this file. The coding agent uses this file to diff API changes and update aggregators/lengow/mappers.py accordingly.",
+  "_spec_url": "https://api.lengow.io/api-docs",
+  "_auth": "POST /access/get_token with access_token + secret; returns short-lived bearer token",
+  "_key_endpoints": {
+    "orders_list": "GET /v3.0/orders/",
+    "token": "POST /access/get_token"
+  },
+  "_known_fields_used_in_mappers": {
+    "order": [
+      "marketplace_order_id",
+      "marketplace_order_date",
+      "lengow_status",
+      "updated_at",
+      "total_order",
+      "original_total_order",
+      "shipping",
+      "original_shipping",
+      "currency.iso_a3",
+      "billing_address.first_name",
+      "billing_address.last_name",
+      "billing_address.first_line",
+      "billing_address.zipcode",
+      "billing_address.city",
+      "billing_address.common_country_iso_a2",
+      "billing_address.phone_mobile",
+      "billing_address.phone_office",
+      "billing_address.phone_home",
+      "billing_address.email",
+      "packages[].delivery",
+      "packages[].cart[].marketplace_product_id",
+      "packages[].cart[].title",
+      "packages[].cart[].amount",
+      "packages[].cart[].quantity",
+      "packages[].cart[].merchant_product_id.id",
+      "payments[].id",
+      "payments[].type"
+    ]
+  }
+}

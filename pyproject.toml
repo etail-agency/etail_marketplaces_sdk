@@ -1,0 +1,26 @@
+[project]
+name = "etail-marketplaces-sdk"
+version = "0.1.0"
+description = "Unified SDK for eCommerce marketplace and aggregator APIs — fetch, normalise, and sink data streams (orders, stock, catalogue, shipments, returns, invoices, analytics, ads, settlements, reviews)"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+postgres = ["sqlalchemy>=2.0", "psycopg2-binary>=2.9"]
+supabase = ["supabase>=2.0"]
+bigquery = ["google-cloud-bigquery>=3.0"]
+all = [
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
+    "supabase>=2.0",
+    "google-cloud-bigquery>=3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["etail_marketplaces_sdk"]

@@ -1,0 +1,226 @@
+classDiagram
+    direction TB
+
+    %% ──────────────────────────────────────────
+    %% CORE
+    %% ──────────────────────────────────────────
+
+    class BaseClient {
+        <<abstract>>
+        +credentials: Credentials
+        +supported_streams: Set~StreamType~
+        +fetch_orders(days_ago) list~Order~
+        +fetch_stock(skus) list~StockLevel~
+        +fetch_catalogue(updated_since) list~Product~
+        +fetch_shipments(days_ago) list~Shipment~
+        +fetch_returns(days_ago) list~Return~
+        +fetch_invoices(days_ago) list~Invoice~
+        +fetch_analytics(date_from, date_to) list~AnalyticsRecord~
+        +fetch_ads(date_from, date_to) list~AdRecord~
+        +fetch_settlements(date_from, date_to) list~Settlement~
+        +fetch_reviews(date_from, date_to) list~Review~
+    }
+
+    class BaseAggregator {
+        <<abstract>>
+        +aggregator_id: int
+        +name: str
+    }
+
+    class BaseMarketplace {
+        <<abstract>>
+        +marketplace_id: int
+        +name: str
+        +country: str
+    }
+
+    BaseClient <|-- BaseAggregator
+    BaseClient <|-- BaseMarketplace
+
+    %% ──────────────────────────────────────────
+    %% AGGREGATORS
+    %% ──────────────────────────────────────────
+
+    class LengowClient {
+        +aggregator_id = 3
+        +name = "Lengow"
+        +supported_streams = ORDERS, INVOICES
+        -_get_token() tuple
+        -_fetch_raw_orders(days_ago) list
+    }
+
+    class ShoppingFeedClient {
+        +aggregator_id = 4
+        +name = "ShoppingFeed"
+        +supported_streams = ORDERS, INVOICES
+        -_fetch_raw_orders(days_ago) list
+    }
+
+    class ChannelEngineClient {
+        +aggregator_id = 6
+        +name = "ChannelEngine"
+        +supported_streams = ORDERS, INVOICES, SHIPMENTS
+        -_fetch_raw_shipments(days_ago) list
+    }
+
+    BaseAggregator <|-- LengowClient
+    BaseAggregator <|-- ShoppingFeedClient
+    BaseAggregator <|-- ChannelEngineClient
+
+    %% ──────────────────────────────────────────
+    %% MARKETPLACES
+    %% ──────────────────────────────────────────
+
+    class ManomanoClient {
+        +marketplace_id = 259
+        +name = "ManoMano"
+        +supported_streams = ORDERS, INVOICES
+        -_fetch_raw_orders(days_ago) list
+    }
+
+    class MiraklClient {
+        +marketplace_id: int
+        +name: str
+        +supported_streams = ORDERS, INVOICES, STOCK, CATALOGUE
+        -_fetch_raw_orders(days_ago) list
+        -_fetch_raw_offers(skus) list
+        -_fetch_raw_products(updated_since) list
+    }
+
+    BaseMarketplace <|-- ManomanoClient
+    BaseMarketplace <|-- MiraklClient
+
+    %% ──────────────────────────────────────────
+    %% CANONICAL MODELS
+    %% ──────────────────────────────────────────
+
+    class Order {
+        +aggregator_order_id: str
+        +marketplace_order_id: str
+        +aggregator_id: int
+        +marketplace_id: int
+        +brand_id: int
+        +order_date: datetime
+        +status: str
+        +eur_amount_incl_vat: Decimal
+        +items: list~OrderItem~
+        +billing_address: Address
+        +raw: dict
+    }
+
+    class Invoice {
+        +invoice_number: str
+        +order_reference: str
+        +brand_id: int
+        +billing_address: InvoiceAddress
+        +items: list~InvoiceItem~
+        +subtotal: Decimal
+        +vat_rate: Decimal
+        +total_amount: Decimal
+        +invoice_number_str: str
+    }
+
+    class StockLevel {
+        +sku: str
+        +quantity_available: int
+        +marketplace_id: int
+        +quantity_total: int
+    }
+
+    class Product {
+        +sku: str
+        +name: str
+        +marketplace_id: int
+        +price_incl_vat: Decimal
+        +images: list~ProductImage~
+        +attributes: list~ProductAttribute~
+    }
+
+    class Shipment {
+        +shipment_id: str
+        +order_id: str
+        +tracking_number: str
+        +status: ShipmentStatus
+        +lines: list~ShipmentLine~
+    }
+
+    class Return {
+        +return_id: str
+        +order_id: str
+        +status: ReturnStatus
+        +total_refund_amount: Decimal
+        +lines: list~ReturnLine~
+    }
+
+    class AnalyticsRecord {
+        +report_date: date
+        +sku: str
+        +impressions: int
+        +clicks: int
+        +revenue: Decimal
+    }
+
+    class AdRecord {
+        +report_date: date
+        +campaign: AdCampaign
+        +spend: Decimal
+        +attributed_revenue: Decimal
+        +acos: Decimal
+    }
+
+    class Settlement {
+        +settlement_id: str
+        +period_start: date
+        +period_end: date
+        +total_amount: Decimal
+        +lines: list~SettlementLine~
+    }
+
+    class Review {
+        +review_id: str
+        +sku: str
+        +rating: float
+        +status: ReviewStatus
+        +is_verified_purchase: bool
+    }
+
+    %% ──────────────────────────────────────────
+    %% OUTPUTS
+    %% ──────────────────────────────────────────
+
+    class BaseSinkConnector {
+        <<abstract>>
+        +write_orders(orders) WriteResult
+        +write_invoices(invoices) WriteResult
+        +write_stock(records) WriteResult
+        +write_catalogue(products) WriteResult
+        +write_shipments(shipments) WriteResult
+        +write_returns(returns) WriteResult
+        +write_analytics(records) WriteResult
+        +write_ads(records) WriteResult
+        +write_settlements(records) WriteResult
+        +write_reviews(records) WriteResult
+    }
+
+    class PostgresSinkConnector {
+        -db: Connection
+        +write_orders(orders) WriteResult
+        +write_invoices(invoices) WriteResult
+    }
+
+    class SupabaseSinkConnector {
+        -client: SupabaseClient
+        +write_orders(orders) WriteResult
+        +write_invoices(invoices) WriteResult
+    }
+
+    class BigQuerySinkConnector {
+        -client: BigQueryClient
+        -dataset_id: str
+        +write_orders(orders) WriteResult
+        +write_invoices(invoices) WriteResult
+    }
+
+    BaseSinkConnector <|-- PostgresSinkConnector
+    BaseSinkConnector <|-- SupabaseSinkConnector
+    BaseSinkConnector <|-- BigQuerySinkConnector
