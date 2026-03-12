@@ -23,7 +23,7 @@ from typing import Optional
 import requests
 
 from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
-from etail_marketplaces_sdk.core.exceptions import RateLimitError, ResourceNotFoundError, StreamNotSupportedError
+from etail_marketplaces_sdk.core.exceptions import RateLimitError, ResourceNotFoundError
 from etail_marketplaces_sdk.core.streams import StreamType
 from etail_marketplaces_sdk.marketplaces.base import BaseMarketplace
 from etail_marketplaces_sdk.marketplaces.mirakl.mappers import map_order, map_invoice

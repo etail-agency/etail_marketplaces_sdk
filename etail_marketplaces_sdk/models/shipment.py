@@ -59,5 +59,5 @@ class Shipment:
             "shipped_at": self.shipped_at.isoformat() if self.shipped_at else None,
             "estimated_delivery": self.estimated_delivery.isoformat() if self.estimated_delivery else None,
             "delivered_at": self.delivered_at.isoformat() if self.delivered_at else None,
-            "lines": [l.to_dict() for l in self.lines],
+            "lines": [line.to_dict() for line in self.lines],
         }

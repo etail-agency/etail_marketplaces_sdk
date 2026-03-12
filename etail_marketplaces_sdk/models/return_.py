@@ -69,5 +69,5 @@ class Return:
             "currency": self.currency,
             "requested_at": self.requested_at.isoformat() if self.requested_at else None,
             "processed_at": self.processed_at.isoformat() if self.processed_at else None,
-            "lines": [l.to_dict() for l in self.lines],
+            "lines": [line.to_dict() for line in self.lines],
         }

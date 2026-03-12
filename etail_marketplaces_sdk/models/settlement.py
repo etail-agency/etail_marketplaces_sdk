@@ -66,6 +66,6 @@ class Settlement:
             "total_amount": str(self.total_amount) if self.total_amount else None,
             "computed_total": str(self.computed_total),
             "currency": self.currency,
-            "lines": [l.to_dict() for l in self.lines],
+            "lines": [line.to_dict() for line in self.lines],
             "paid_at": self.paid_at.isoformat() if self.paid_at else None,
         }
