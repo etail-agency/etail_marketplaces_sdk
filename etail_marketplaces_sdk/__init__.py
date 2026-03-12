@@ -11,6 +11,8 @@ Supported streams:
     invoices, analytics, ads, settlements, reviews
 """
 
+__version__ = "0.1.0"
+
 from etail_marketplaces_sdk.core.streams import StreamType
 from etail_marketplaces_sdk.core.credentials import (
     ApiKeyCredentials,
@@ -27,7 +29,23 @@ from etail_marketplaces_sdk.core.exceptions import (
     MappingError,
 )
 
+# Aggregators
+from etail_marketplaces_sdk.aggregators.lengow.client import LengowClient
+from etail_marketplaces_sdk.aggregators.shopping_feed.client import ShoppingFeedClient
+from etail_marketplaces_sdk.aggregators.channelengine.client import ChannelEngineClient
+
+# Marketplaces
+from etail_marketplaces_sdk.marketplaces.manomano.client import ManomanoClient
+from etail_marketplaces_sdk.marketplaces.mirakl.client import MiraklClient
+
+# Sinks
+from etail_marketplaces_sdk.outputs.base import BaseSinkConnector
+from etail_marketplaces_sdk.outputs.postgres import PostgresSinkConnector
+from etail_marketplaces_sdk.outputs.supabase import SupabaseSinkConnector
+from etail_marketplaces_sdk.outputs.bigquery import BigQuerySinkConnector
+
 __all__ = [
+    "__version__",
     "StreamType",
     "ApiKeyCredentials",
     "OAuth2Credentials",
@@ -39,4 +57,13 @@ __all__ = [
     "StreamNotSupportedError",
     "ResourceNotFoundError",
     "MappingError",
+    "LengowClient",
+    "ShoppingFeedClient",
+    "ChannelEngineClient",
+    "ManomanoClient",
+    "MiraklClient",
+    "BaseSinkConnector",
+    "PostgresSinkConnector",
+    "SupabaseSinkConnector",
+    "BigQuerySinkConnector",
 ]
