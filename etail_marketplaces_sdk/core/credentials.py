@@ -13,7 +13,7 @@ Usage:
     client = ShoppingFeedClient(store_id="12345", credentials=creds)
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 

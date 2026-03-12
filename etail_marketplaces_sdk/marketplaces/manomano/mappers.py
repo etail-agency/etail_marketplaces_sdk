@@ -136,7 +136,6 @@ def map_invoice(
 
     shipping_excl_vat = raw.get("shipping_price_excluding_vat", {})
     shipping_cost = Decimal(str(shipping_excl_vat.get("amount", "0")))
-    shipping_tax = shipping_cost * tax_rate / 100
 
     total_amount = Decimal(str(raw.get("total_price", {}).get("amount", "0")))
     invoice_number = str(random.randint(3_500_000, 4_999_999))

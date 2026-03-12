@@ -94,7 +94,6 @@ class LengowClient(BaseAggregator):
         marketplace_name = raw.get("marketplace")
         mapping = LENGOW_MARKETPLACE_MAPPING.get(marketplace_name, {})
         marketplace_id = mapping.get("marketplace_id") or self.marketplace_id
-        tax_rate = mapping.get("tva") or self.tax_rate
 
         return map_order(raw, self.aggregator_id, marketplace_id, self.brand)
 
