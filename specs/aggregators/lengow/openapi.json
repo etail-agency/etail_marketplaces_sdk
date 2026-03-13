@@ -1,40 +1,1309 @@
 {
-  "_sdk_note": "Download the official Lengow OpenAPI spec from https://developers.lengow.com/ and replace this file. The coding agent uses this file to diff API changes and update aggregators/lengow/mappers.py accordingly.",
-  "_spec_url": "https://api.lengow.io/api-docs",
-  "_auth": "POST /access/get_token with access_token + secret; returns short-lived bearer token",
-  "_key_endpoints": {
-    "orders_list": "GET /v3.0/orders/",
-    "token": "POST /access/get_token"
-  },
-  "_known_fields_used_in_mappers": {
-    "order": [
-      "marketplace_order_id",
-      "marketplace_order_date",
-      "lengow_status",
-      "updated_at",
-      "total_order",
-      "original_total_order",
-      "shipping",
-      "original_shipping",
-      "currency.iso_a3",
-      "billing_address.first_name",
-      "billing_address.last_name",
-      "billing_address.first_line",
-      "billing_address.zipcode",
-      "billing_address.city",
-      "billing_address.common_country_iso_a2",
-      "billing_address.phone_mobile",
-      "billing_address.phone_office",
-      "billing_address.phone_home",
-      "billing_address.email",
-      "packages[].delivery",
-      "packages[].cart[].marketplace_product_id",
-      "packages[].cart[].title",
-      "packages[].cart[].amount",
-      "packages[].cart[].quantity",
-      "packages[].cart[].merchant_product_id.id",
-      "payments[].id",
-      "payments[].type"
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Lengow API",
+      "description": "Lengow API is a REST-based API that allows you to list and retrieve orders, execute actions on orders (acceptance, shipment, cancellation, refund), display marketplace actions, retrieve invoice documents, and communicate with Zalando warehouse.",
+      "version": "3.0",
+      "contact": {
+        "url": "https://my.lengow.io"
+      }
+    },
+    "servers": [
+      {
+        "url": "https://api.lengow.io",
+        "description": "Production server"
+      }
+    ],
+    "security": [
+      {
+        "bearerAuth": []
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "bearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "description": "Token obtained from /access/get_token endpoint. Valid for one hour."
+        }
+      },
+      "schemas": {
+        "Address": {
+          "type": "object",
+          "properties": {
+            "company": { "type": "string" },
+            "civility": { "type": "string" },
+            "first_name": { "type": "string" },
+            "last_name": { "type": "string" },
+            "full_name": { "type": "string" },
+            "first_line": { "type": "string" },
+            "second_line": { "type": "string" },
+            "complement": { "type": "string" },
+            "zipcode": { "type": "string" },
+            "city": { "type": "string" },
+            "phone_home": { "type": "string" },
+            "phone_office": { "type": "string" },
+            "phone_mobile": { "type": "string" },
+            "full_address": { "type": "string" },
+            "email": { "type": "string" },
+            "common_country_iso_a2": { "type": "string", "description": "ISO 3166-2 two-character country code" }
+          }
+        },
+        "Payment": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "integer" },
+            "checkout": { "type": "string" },
+            "status": { "type": "string" },
+            "type": { "type": "string", "description": "Type of payment (e.g. Paypal)" },
+            "settled_at": { "type": "string", "format": "date-time" }
+          }
+        },
+        "BuyerTax": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "description": "Type of tax ID supplied by buyer during checkout" },
+            "id": { "type": "string", "description": "The actual tax ID for the buyer" }
+          }
+        },
+        "Tax": {
+          "type": "object",
+          "properties": {
+            "order_tax_id": { "type": "string" },
+            "is_marketplace_deemed_supplier": { "type": "boolean" },
+            "tax_electronic_portal_type": { "type": "string" },
+            "tax_electronic_portal_id": { "type": "string" },
+            "marketplace_eori_number": { "type": "string" },
+            "buyer_tax": { "$ref": "#/components/schemas/BuyerTax" }
+          }
+        },
+        "Tracking": {
+          "type": "object",
+          "properties": {
+            "number": { "type": "string" },
+            "method": { "type": "string" },
+            "carrier": { "type": "string" },
+            "url": { "type": "string" },
+            "is_delivered_by_marketplace": { "type": "boolean" },
+            "parcel_weight": { "type": "number" },
+            "shipped_at": { "type": "string", "format": "date-time" },
+            "relay": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "type": { "type": "string" }
+              }
+            }
+          }
+        },
+        "OrderedProduct": {
+          "type": "object",
+          "properties": {
+            "marketplace_order_line_id": { "type": "string" },
+            "marketplace_product_id": { "type": "string" },
+            "merchant_product_id": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "field": { "type": "string" }
+              }
+            },
+            "marketplace_package_id": { "type": "string" },
+            "marketplace_status": { "type": "string" },
+            "lengow_status": { "type": "string" },
+            "title": { "type": "string" },
+            "category": { "type": "string" },
+            "url_product": { "type": "string" },
+            "url_image": { "type": "string" },
+            "amount": { "type": "number" },
+            "shipping": { "type": "number" },
+            "tax": { "type": "number" },
+            "discount": { "type": "number" },
+            "original_refunded_amount": { "type": "number" },
+            "refunded_amount": { "type": "number" },
+            "original_amount": { "type": "number" },
+            "original_shipping": { "type": "number" },
+            "original_tax": { "type": "number" },
+            "original_discount": { "type": "number" },
+            "quantity": { "type": "integer" },
+            "max_shipping_date": { "type": "string", "format": "date-time" },
+            "created_at": { "type": "string", "format": "date-time" },
+            "updated_at": { "type": "string", "format": "date-time" },
+            "original_buyer_amount": { "type": "number" },
+            "original_buyer_tax": { "type": "number" }
+          }
+        },
+        "Package": {
+          "type": "object",
+          "properties": {
+            "cart": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/OrderedProduct" }
+            },
+            "delivery": { "$ref": "#/components/schemas/Address" }
+          }
+        },
+        "Order": {
+          "type": "object",
+          "properties": {
+            "marketplace": { "type": "string", "description": "Marketplace code" },
+            "account_id": { "type": "integer" },
+            "marketplace_order_date": { "type": "string", "format": "date-time" },
+            "marketplace_country_iso2": { "type": "string" },
+            "marketplace_order_id": { "type": "string" },
+            "lengow_status": {
+              "type": "string",
+              "enum": [
+                "new", "waiting_acceptance", "refused", "accepted", "waiting_shipment",
+                "shipped", "closed", "canceled", "refunding", "refunded", "partial_refunded",
+                "pickup_to_prepare", "to_pickup", "pickup_completed", "pickup_canceled", "to_refund"
+              ]
+            },
+            "marketplace_status": { "type": "string" },
+            "total_order": { "type": "number" },
+            "total_tax": { "type": "number" },
+            "commission": { "type": "number" },
+            "processing_fee": { "type": "number" },
+            "shipping": { "type": "number" },
+            "discount": { "type": "number" },
+            "currency": { "type": "string", "description": "ISO 4217 currency code" },
+            "original_currency": { "type": "string" },
+            "original_total_order": { "type": "number" },
+            "original_total_tax": { "type": "number" },
+            "original_shipping": { "type": "number" },
+            "original_discount": { "type": "number" },
+            "original_commission": { "type": "number" },
+            "original_processing_fee": { "type": "number" },
+            "original_total_buyer_amount": { "type": "number" },
+            "original_total_buyer_tax": { "type": "number" },
+            "original_buyer_currency": { "type": "string" },
+            "comments": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "array", "items": { "type": "string" } }
+              ]
+            },
+            "invoice_number": { "type": "string" },
+            "invoice_url": { "type": "string" },
+            "billing_address": { "$ref": "#/components/schemas/Address" },
+            "contact_address": { "$ref": "#/components/schemas/Address" },
+            "payments": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/Payment" }
+            },
+            "packages": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/Package" }
+            },
+            "order_meta": { "type": "object", "nullable": true },
+            "tax": { "$ref": "#/components/schemas/Tax" },
+            "anonymized": { "type": "boolean" }
+          }
+        },
+        "OrderListResponse": {
+          "type": "object",
+          "properties": {
+            "count": { "type": "integer" },
+            "next": { "type": "string", "nullable": true },
+            "previous": { "type": "string", "nullable": true },
+            "results": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/Order" }
+            }
+          }
+        },
+        "OrderAction": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "integer" },
+            "account_id": { "type": "integer" },
+            "marketplace": { "type": "string" },
+            "marketplace_order_id": { "type": "string" },
+            "action_type": { "type": "string" },
+            "processed": { "type": "boolean" },
+            "queued": { "type": "boolean" },
+            "tracking_number": { "type": "string" },
+            "carrier": { "type": "string" },
+            "line": { "type": "string" },
+            "created_at": { "type": "string", "format": "date-time" },
+            "updated_at": { "type": "string", "format": "date-time" },
+            "errors": { "type": "string", "nullable": true }
+          }
+        },
+        "OrderActionListResponse": {
+          "type": "object",
+          "properties": {
+            "count": { "type": "integer" },
+            "next": { "type": "string", "nullable": true },
+            "previous": { "type": "string", "nullable": true },
+            "results": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/OrderAction" }
+            }
+          }
+        },
+        "ShippingNotice": {
+          "type": "object",
+          "properties": {
+            "shipping_notice_id": { "type": "integer" },
+            "marketplace_shipping_notice_id": { "type": "string" },
+            "lengow_status": { "type": "string" },
+            "marketplace_status": { "type": "string" },
+            "extra": { "type": "object" },
+            "resources": { "type": "object" },
+            "actions": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "ShippingNoticeInput": {
+          "type": "object",
+          "properties": {
+            "carrier_name": { "type": "string", "maxLength": 100 },
+            "requested_zalando_location_id": { "type": "string" },
+            "pallets_count": { "type": "integer" },
+            "colli_count": { "type": "integer" },
+            "hanging_goods_count": { "type": "integer" },
+            "earliest_delivery_date": { "type": "string", "format": "date" },
+            "merchant_b2b_reference": { "type": "string" },
+            "comments": { "type": "string" },
+            "contact_email": { "type": "string", "format": "email" }
+          }
+        },
+        "ItemSetInput": {
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["ean", "quantity"],
+                "properties": {
+                  "ean": { "type": "string" },
+                  "quantity": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "ItemSetResponse": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ean": { "type": "string" },
+                        "quantity": { "type": "integer" },
+                        "sku": { "type": "string" },
+                        "validation_state": { "type": "string" }
+                      }
+                    }
+                  },
+                  "items_total": { "type": "integer" },
+                  "items_valid": { "type": "integer" },
+                  "validation_state": { "type": "string" },
+                  "validation_description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "Error": {
+          "type": "object",
+          "properties": {
+            "detail": { "type": "string" }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/access/get_token": {
+        "post": {
+          "tags": ["Authentication"],
+          "summary": "Get a token",
+          "description": "Authenticate with your access_token and secret to receive a session token valid for one hour.",
+          "security": [],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/x-www-form-urlencoded": {
+                "schema": {
+                  "type": "object",
+                  "required": ["access_token", "secret"],
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "description": "Access token of the application"
+                    },
+                    "secret": {
+                      "type": "string",
+                      "description": "Secret of the application"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful authentication",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "token": { "type": "string" },
+                      "account_id": { "type": "integer" }
+                    }
+                  },
+                  "example": {
+                    "token": "${TOKEN}",
+                    "account_id": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/orders/": {
+        "get": {
+          "tags": ["Orders"],
+          "summary": "List and retrieve orders",
+          "description": "Retrieve a paginated list of orders with optional filters and ordering. By default, filters on orders from the last 7 days.",
+          "parameters": [
+            { "name": "account_id", "in": "query", "schema": { "type": "integer" }, "description": "Filter by account" },
+            { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 }, "description": "Page number" },
+            { "name": "page_size", "in": "query", "schema": { "type": "integer", "default": 100, "maximum": 100 }, "description": "Results per page (max 100)" },
+            {
+              "name": "ordering",
+              "in": "query",
+              "schema": {
+                "type": "string",
+                "enum": ["marketplace", "-marketplace", "marketplace_order_id", "-marketplace_order_id", "merchant_order_id", "-merchant_order_id", "lengow_status", "-lengow_status", "marketplace_status", "-marketplace_status", "marketplace_order_date", "-marketplace_order_date", "imported_at", "-imported_at", "updated_at", "-updated_at"]
+              },
+              "description": "Sort field. Prefix with '-' for descending order."
+            },
+            { "name": "set_currency", "in": "query", "schema": { "type": "string" }, "description": "ISO 4217 currency code to convert amounts" },
+            { "name": "marketplace", "in": "query", "schema": { "type": "string" }, "description": "Filter by marketplace code" },
+            { "name": "marketplace_order_id", "in": "query", "schema": { "type": "string" }, "description": "Filter by marketplace order identifier" },
+            { "name": "merchant_order_id", "in": "query", "schema": { "type": "string" }, "description": "Filter by merchant order identifier. Use 'None' to get unimported orders." },
+            { "name": "lengow_status", "in": "query", "schema": { "type": "string" }, "description": "Filter by Lengow status" },
+            { "name": "lengow_line_status", "in": "query", "schema": { "type": "string" }, "description": "Filter by the status of the order line" },
+            { "name": "marketplace_status", "in": "query", "schema": { "type": "string" }, "description": "Filter by marketplace status" },
+            { "name": "marketplace_order_date_from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Filter orders placed from this date (ISO 8601)" },
+            { "name": "marketplace_order_date_to", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Filter orders placed up to this date (ISO 8601)" },
+            { "name": "imported_from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Filter by imported date from" },
+            { "name": "imported_to", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Filter by imported date to" },
+            { "name": "updated_from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Filter by updated date from" },
+            { "name": "updated_to", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Filter by updated date to" }
+          ],
+          "responses": {
+            "200": {
+              "description": "Paginated list of orders",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/OrderListResponse" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/orders/moi/": {
+        "patch": {
+          "tags": ["Orders"],
+          "summary": "Set Merchant Order ID",
+          "description": "Set the merchant internal order ID in Lengow to mark orders as imported and avoid duplicates.",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["account_id", "marketplace_order_id", "marketplace", "merchant_order_id"],
+                  "properties": {
+                    "account_id": { "type": "string", "description": "Your Lengow account ID" },
+                    "marketplace_order_id": { "type": "string", "description": "Order ID from the marketplace" },
+                    "marketplace": { "type": "string", "description": "Marketplace code" },
+                    "merchant_order_id": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Your merchant order IDs"
+                    }
+                  }
+                },
+                "example": {
+                  "account_id": 1,
+                  "merchant_order_id": ["123456789"],
+                  "marketplace": "marketplace_name",
+                  "marketplace_order_id": "1234-ABC"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Order object with updated merchant ID",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/Order" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/orders/actions/": {
+        "post": {
+          "tags": ["Orders"],
+          "summary": "Create an action on an order",
+          "description": "Create an asynchronous action (accept, refuse, ship, cancel, refund, etc.) on a given order. Actions are retried up to 5 times on failure.",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["marketplace_order_id", "account_id", "marketplace", "action_type"],
+                  "properties": {
+                    "marketplace_order_id": { "type": "string", "description": "Order identifier from the marketplace" },
+                    "account_id": { "type": "integer" },
+                    "marketplace": { "type": "string", "description": "Marketplace code" },
+                    "action_type": {
+                      "type": "string",
+                      "enum": ["accept", "refuse", "ship", "cancel", "refund", "partial_cancel", "set_delivery_date", "set_eligible_shipping_methods", "buy_shipment_label", "pickup_ready", "pickup_complete", "pickup_cancel", "pickup_refund"],
+                      "description": "Type of action to perform"
+                    },
+                    "tracking_number": { "type": "string", "description": "Tracking number (conditional)" },
+                    "tracking_url": { "type": "string", "description": "Tracking URL (conditional)" },
+                    "carrier": { "type": "string", "description": "Carrier (conditional)" },
+                    "line": { "type": "string", "description": "marketplace_order_line_id for partial actions (conditional)" }
+                  }
+                },
+                "example": {
+                  "marketplace_order_id": "1234-ABC",
+                  "account_id": 1,
+                  "marketplace": "menlook",
+                  "action_type": "ship",
+                  "tracking_number": "123456",
+                  "tracking_url": "http://www.ups.com/track?trackNums=123456",
+                  "carrier": "ups",
+                  "line": "1234-ABC-LINE"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Action created. Returns task identifier.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Task identifier" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "tags": ["Orders"],
+          "summary": "List all actions on orders",
+          "description": "Check if order actions have been processed by the marketplace. Use queued=false&processed=false to identify failed actions.",
+          "parameters": [
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } },
+            { "name": "id", "in": "query", "schema": { "type": "string" }, "description": "Action ID" },
+            { "name": "marketplace", "in": "query", "schema": { "type": "string" } },
+            { "name": "marketplace_order_id", "in": "query", "schema": { "type": "string" } },
+            { "name": "action_type", "in": "query", "schema": { "type": "string" } },
+            { "name": "processed", "in": "query", "schema": { "type": "boolean" }, "description": "True = action succeeded; False = failed" },
+            { "name": "queued", "in": "query", "schema": { "type": "boolean" }, "description": "True = still processing; False = done" },
+            { "name": "tracking_number", "in": "query", "schema": { "type": "string" } },
+            { "name": "carrier", "in": "query", "schema": { "type": "string" } },
+            { "name": "line", "in": "query", "schema": { "type": "string" } },
+            { "name": "created_from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+            { "name": "created_to", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+            { "name": "updated_from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+            { "name": "updated_to", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+            { "name": "errors", "in": "query", "schema": { "type": "string" }, "description": "Filter by returned error message" }
+          ],
+          "responses": {
+            "200": {
+              "description": "Paginated list of order actions",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/OrderActionListResponse" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/marketplaces/": {
+        "get": {
+          "tags": ["Marketplaces"],
+          "summary": "Get marketplace information",
+          "description": "Returns the complete list of possible actions authorized by each marketplace, including allowed statuses, mandatory/optional parameters, carriers, and shipping methods.",
+          "parameters": [
+            { "name": "account_id", "in": "query", "schema": { "type": "string" }, "description": "Filter to your marketplaces" },
+            { "name": "marketplace", "in": "query", "schema": { "type": "string" }, "description": "Filter by marketplace code (e.g. leroymerlin)" }
+          ],
+          "responses": {
+            "200": {
+              "description": "Map of marketplace code to marketplace details",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "country": { "type": "string" },
+                        "description": { "type": "string" },
+                        "homepage": { "type": "string" },
+                        "logo": { "type": "string" },
+                        "features": { "type": "object" },
+                        "country_iso_a2": { "type": "string" },
+                        "package": { "type": "string" },
+                        "legacy_code": { "type": "string" },
+                        "orders": {
+                          "type": "object",
+                          "properties": {
+                            "status": { "type": "object" },
+                            "actions": { "type": "object" },
+                            "carriers": { "type": "object" },
+                            "shipping_methods": { "type": "object" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v1.0/report/export": {
+        "get": {
+          "tags": ["Marketplaces"],
+          "summary": "Retrieve marketplace reports",
+          "description": "Download the last report issued after product transmission to a marketplace. Returns a pipe-separated CSV file. Rate limited to 10 requests per minute.",
+          "parameters": [
+            { "name": "feed_id", "in": "query", "required": true, "schema": { "type": "integer" }, "description": "ID of the feed" },
+            { "name": "nb_days_to_skip", "in": "query", "schema": { "type": "integer" }, "description": "Days to skip (e.g. 1 = yesterday's report)" }
+          ],
+          "responses": {
+            "200": {
+              "description": "CSV report with pipe separators",
+              "content": {
+                "text/csv": {
+                  "schema": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/document/{doc_id}": {
+        "get": {
+          "tags": ["Documents"],
+          "summary": "Download Invoice/Delivery Document",
+          "description": "Download an invoice or delivery document by its ID. First retrieve the doc_id from the order's 'documents' array, then use this endpoint to download.",
+          "parameters": [
+            { "name": "doc_id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Document identifier from the order's documents array" },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Document content (PDF or other format)",
+              "content": {
+                "application/pdf": { "schema": { "type": "string", "format": "binary" } },
+                "application/octet-stream": { "schema": { "type": "string", "format": "binary" } }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/document/{feed_id}/list": {
+        "get": {
+          "tags": ["Documents"],
+          "summary": "List ZFS document types",
+          "description": "Retrieve available ZFS document types for a given feed.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of available document types",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "code": { "type": "integer" },
+                      "document_types": {
+                        "type": "array",
+                        "items": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/document/{feed_id}/{document_type}/list": {
+        "get": {
+          "tags": ["Documents"],
+          "summary": "List ZFS reports of a specific type",
+          "description": "List available reports of a specific document type (e.g. zfs-item-quantity-snapshot) for a given feed.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "document_type", "in": "path", "required": true, "schema": { "type": "string", "enum": ["zfs-item-quantity-snapshot", "zfs-item-quantity-one-shot"] } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Map of document ID to document metadata",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "type": { "type": "string" },
+                        "errors": { "type": "string", "nullable": true },
+                        "status": { "type": "string", "enum": ["unknown", "error", "ready"] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/document/{feed_id}/{document_type}/download/{doc_id}": {
+        "get": {
+          "tags": ["Documents"],
+          "summary": "Download ZFS stock report",
+          "description": "Download a specific ZFS stock report by document ID.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "document_type", "in": "path", "required": true, "schema": { "type": "string", "enum": ["zfs-item-quantity-snapshot", "zfs-item-quantity-one-shot"] } },
+            { "name": "doc_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "CSV report content",
+              "content": {
+                "text/csv": { "schema": { "type": "string" } },
+                "text/plain": { "schema": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/document": {
+        "post": {
+          "tags": ["Documents"],
+          "summary": "Upload invoice to Lengow API",
+          "description": "Upload an invoice PDF to be forwarded to Amazon (VCS) or Mirakl marketplaces. For Mirakl, metadata fields document_number, issue_date, due_date, total_amount_excluding_taxes, and total_tax_amount are required.",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "required": ["order_id", "account_id", "marketplace", "upload"],
+                  "properties": {
+                    "order_id": { "type": "string", "description": "Marketplace order ID" },
+                    "account_id": { "type": "string" },
+                    "marketplace": { "type": "string", "description": "Marketplace code (e.g. amazon_fr)" },
+                    "metadata": { "type": "string", "description": "JSON string with doc_type, DocumentId, ShippingId (Amazon) or document_number, issue_date, due_date, total_amount_excluding_taxes, total_tax_amount (Mirakl)" },
+                    "upload": { "type": "string", "format": "binary", "description": "PDF invoice file" }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Invoice uploaded successfully"
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Create shipping notice",
+          "description": "Create a shipping notice to send products to Zalando warehouses.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ShippingNoticeInput" }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Created shipping notice",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "notice": { "$ref": "#/components/schemas/ShippingNotice" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "List shipping notices",
+          "description": "Get all shipping notices for a given feed.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } },
+            { "name": "lengow_status", "in": "query", "schema": { "type": "string" } },
+            { "name": "marketplace_status", "in": "query", "schema": { "type": "string" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Paginated list of shipping notices",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "count": { "type": "integer" },
+                      "next": { "type": "string", "nullable": true },
+                      "previous": { "type": "string", "nullable": true },
+                      "results": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/ShippingNotice" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}": {
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Get shipping notice",
+          "description": "Retrieve a specific shipping notice by ID.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Shipping notice",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ShippingNotice" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/update_shipping_notice": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Update shipping notice",
+          "description": "Update an existing shipping notice.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ShippingNoticeInput" }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Updated shipping notice",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ShippingNotice" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/create_announced_item_set": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Create announced item set",
+          "description": "Create a list of announced items (EANs and quantities) that you intend to ship. Only onboarded EANs are accepted.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemSetInput" }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Shipping notice updated with SHIPMENT_CONTENT_ANNOUNCED status",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "notice": { "$ref": "#/components/schemas/ShippingNotice" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/announced_item_sets": {
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "List announced item sets",
+          "description": "List the announced item sets for a given shipping notice.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of announced item sets",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ItemSetResponse" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/update_announced_item_set": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Update announced item set",
+          "description": "Update the announced item set with new EANs and quantities.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemSetInput" }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Updated item set",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ShippingNotice" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/confirm_announcement": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Announcement confirmation",
+          "description": "Confirm the announced item set. No request body required. Sets status to SHIPMENT_CONTENT_CONFIRMED.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Confirmed shipping notice",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "notice": { "$ref": "#/components/schemas/ShippingNotice" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/create_dispatch_item_set": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Create dispatch item set",
+          "description": "Create dispatch items to ship. Requires shipping notice lengow_status to be SHIPMENT_AWAITED first.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemSetInput" }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Shipping notice updated with SHIPMENT_PREPARATION status",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "notice": { "$ref": "#/components/schemas/ShippingNotice" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/dispatch_item_sets": {
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "List dispatch item sets",
+          "description": "List dispatched item sets for a given shipping notice.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of dispatch item sets",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ItemSetResponse" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/update_dispatch_item_set": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Update dispatch item set",
+          "description": "Update the dispatch item set with new EANs and quantities.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemSetInput" }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Updated dispatch item set",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ShippingNotice" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/confirm_dispatch": {
+        "post": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Dispatch confirmation",
+          "description": "Confirm the dispatch. No request body required. Sets status to SHIPMENT_SHIPPED.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Confirmed dispatch - shipping notice",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "notice": { "$ref": "#/components/schemas/ShippingNotice" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/shipping_notices/{shipping_notice_id}/tracking_status": {
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Shipment tracking",
+          "description": "Track a given shipping notice. Corresponds to the Zalando Tours API.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "shipping_notice_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Tracking data",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "zalando_advice_id": { "type": "string" },
+                            "shipping_notice_id": { "type": "string" },
+                            "tour_number": { "type": "string" },
+                            "to_location": { "type": "string" },
+                            "from_location": { "type": "string" },
+                            "planned_arrival_time_at_dock": { "type": "string", "format": "date-time" },
+                            "planned_arrival_time_at_yard": { "type": "string", "format": "date-time" },
+                            "planned_amount_of_loading_units": {
+                              "type": "object",
+                              "properties": {
+                                "pallets": { "type": "integer" },
+                                "colli": { "type": "integer" },
+                                "hanging_garments": { "type": "integer" }
+                              }
+                            },
+                            "actual_amount_of_loading_units": {
+                              "type": "object",
+                              "properties": {
+                                "pallets": { "type": "integer" },
+                                "colli": { "type": "integer" },
+                                "hanging_garments": { "type": "integer" }
+                              }
+                            },
+                            "type": { "type": "string" },
+                            "current_status": {
+                              "type": "object",
+                              "properties": {
+                                "status_text": { "type": "string", "enum": ["shipped", "arrived", "unloading", "unloaded"] },
+                                "status_details": { "type": "string" },
+                                "last_updated": { "type": "string", "format": "date-time" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/stock_movements/": {
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "List available stock movement resources",
+          "description": "Returns the available stock movement resource types and their required/optional parameters.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "Available resources with their required and optional parameters",
+              "content": {
+                "application/json": {
+                  "schema": { "type": "object" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/logistics/feed/{feed_id}/stock_movements/{resource}": {
+        "get": {
+          "tags": ["Zalando Fulfillment Solutions"],
+          "summary": "Retrieve stock movements",
+          "description": "Retrieve ZFS stock movements. Resource types: received_items, returned_items, intra_community_movements, liquidated_items. Data retention: 100 days.",
+          "parameters": [
+            { "name": "feed_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+            {
+              "name": "resource",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "enum": ["received_items", "returned_items", "intra_community_movements", "liquidated_items"]
+              }
+            },
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } },
+            { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Start date (required for most resources)" },
+            { "name": "to", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "End date (required for most resources)" },
+            { "name": "purchase_order_number", "in": "query", "schema": { "type": "string" }, "description": "Optional filter for liquidated_items" }
+          ],
+          "responses": {
+            "200": {
+              "description": "Stock movement data",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "array",
+                        "items": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/v3.0/apps/amazon-vcs/vidr/": {
+        "get": {
+          "tags": ["Amazon VCS"],
+          "summary": "Get VAT Invoice Data Report (VIDR)",
+          "description": "Retrieve Amazon VAT Invoice Data Report for invoices and credit notes. Only available if the Amazon VCS App is activated. Lengow retrieves VIDR every 2 hours for the last 30 days.",
+          "parameters": [
+            { "name": "account_id", "in": "query", "required": true, "schema": { "type": "integer" } },
+            { "name": "marketplace", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Amazon marketplace code (e.g. amazon_de)" },
+            { "name": "marketplace_order_id", "in": "query", "schema": { "type": "string" }, "description": "Filter by order ID" },
+            { "name": "line", "in": "query", "schema": { "type": "string" }, "description": "Filter by order-item-id" },
+            { "name": "invoicing_status", "in": "query", "schema": { "type": "string" }, "description": "Filter by invoicing status (e.g. InvoicePending)" }
+          ],
+          "responses": {
+            "200": {
+              "description": "VIDR data",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "account_id": { "type": "integer" },
+                      "marketplace": { "type": "string" },
+                      "data": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "marketplace-id": { "type": "string" },
+                            "order-id": { "type": "string" },
+                            "order-item-id": { "type": "string" },
+                            "shipping-id": { "type": "string" },
+                            "transaction-id": { "type": "string" },
+                            "transaction-type": { "type": "string" },
+                            "invoice-number": { "type": "string" },
+                            "invoice-status": { "type": "string" },
+                            "invoice-status-description": { "type": "string" },
+                            "is-amazon-invoiced": { "type": "string" },
+                            "order-date": { "type": "string" },
+                            "shipment-date": { "type": "string" },
+                            "buyer-vat-number": { "type": "string" },
+                            "seller-vat-number": { "type": "string" },
+                            "asin": { "type": "string" },
+                            "sku": { "type": "string" },
+                            "product-name": { "type": "string" },
+                            "quantity-purchased": { "type": "string" },
+                            "currency": { "type": "string" },
+                            "item-vat-incl-amount": { "type": "string" },
+                            "item-vat-amount": { "type": "string" },
+                            "item-vat-excl-amount": { "type": "string" },
+                            "item-vat-rate": { "type": "string" },
+                            "recommended-invoice-format": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad request",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/Error" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tags": [
+      { "name": "Authentication", "description": "Endpoints for obtaining access tokens" },
+      { "name": "Orders", "description": "List, retrieve, and perform actions on marketplace orders" },
+      { "name": "Marketplaces", "description": "Retrieve marketplace information and product reports" },
+      { "name": "Documents", "description": "Retrieve invoices, delivery documents, and ZFS stock reports" },
+      { "name": "Zalando Fulfillment Solutions", "description": "Manage ZFS logistics: shipping notices, item sets, stock movements" },
+      { "name": "Amazon VCS", "description": "Amazon VAT Calculation Service — retrieve VIDR and upload invoices" }
     ]
   }
-}

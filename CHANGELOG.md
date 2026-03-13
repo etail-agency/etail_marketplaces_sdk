@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [0.2.5] - 2026-03-12
+
+### Fixed — spec alignment (`specs/aggregators/lengow/openapi.json` v3.0)
+
+- **Critical: `currency` parsed as dict instead of string**: `map_order()` and `map_invoice()` stored `raw.get("currency", {})` and then called `.get("iso_a3", "EUR")` on the result. Per the spec, `Order.currency` is a plain ISO 4217 string (e.g. `"EUR"`), not an object — this would raise `AttributeError` whenever `currency` was present in the response. Fixed to read it directly as a string.
+- **Critical: `original_currency` read from wrong field**: The mapper derived `original_currency` by calling `.get("iso_a3")` on the (now-fixed) `currency` dict. The spec exposes `original_currency` as a separate top-level string field. Fixed to read `raw.get("original_currency")` with a fallback to `currency`.
+- **`second_line` and `complement` address fields ignored**: The spec's `Address` schema includes `second_line` (second address line) and `complement` (additional address detail). Both address mappers now populate `address_line2` (delivery) and append to the full street string (invoice).
+- **`full_name` and `company` address fields ignored**: The spec provides a `full_name` field (the authoritative combined name from the platform) and a `company` field. The mappers now prefer `full_name` over manually combining `first_name`+`last_name`, and include `company` in the display name when present — matching the approach used by other platform mappers.
+- **`invoice_number` field on `Order` not used**: The spec defines `Order.invoice_number` as a string field set by the marketplace. `map_invoice()` was always generating an invoice number from the payment ID (or a random fallback), ignoring this field. Now uses `raw.get("invoice_number")` when present, falling back to the payment-based logic only when it is absent.
+- **Date filter sends `date` instead of `date-time`**: `_fetch_raw_orders()` computed `datetime.now().date()` and sent it as a plain `YYYY-MM-DD` string for `marketplace_order_date_from`. The spec defines this parameter as `format: date-time` (ISO 8601). Fixed to use a full `datetime` and format it as `YYYY-MM-DDTHH:MM:SS`.
+
 ## [0.2.4] - 2026-03-13
 
 ### Fixed — spec alignment (`specs/aggregators/shopping_feed/order.yml` v1.0)

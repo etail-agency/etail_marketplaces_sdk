@@ -46,25 +46,42 @@ def _parse_dt(value: Optional[str]) -> Optional[datetime]:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _build_name(data: dict[str, Any]) -> str:
+    """Prefer `full_name` from the API; fall back to first+last, then include company."""
+    name = (
+        data.get("full_name")
+        or f"{data.get('first_name', '')} {data.get('last_name', '')}".strip()
+    )
+    company = data.get("company") or ""
+    if company and name:
+        return f"{name} ({company})"
+    return company or name
+
+
 def _map_address(data: dict[str, Any]) -> Address:
+    line2 = data.get("second_line") or data.get("complement") or None
     return Address(
-        name=f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
-        address_line1=data.get("first_line", ""),
-        postal_code=data.get("zipcode", ""),
-        city=data.get("city", ""),
-        country=data.get("common_country_iso_a2", ""),
+        name=_build_name(data),
+        address_line1=data.get("first_line") or "",
+        address_line2=line2,
+        postal_code=data.get("zipcode") or "",
+        city=data.get("city") or "",
+        country=data.get("common_country_iso_a2") or "",
         phone=data.get("phone_mobile") or data.get("phone_office") or data.get("phone_home"),
         email=data.get("email"),
     )
 
 
 def _map_invoice_address(data: dict[str, Any]) -> InvoiceAddress:
+    line1 = data.get("first_line") or ""
+    line2 = data.get("second_line") or data.get("complement") or ""
+    full_street = f"{line1}, {line2}".strip(", ") if line2 else line1
     return InvoiceAddress(
-        name=f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
-        address=data.get("first_line", ""),
-        postal_code=data.get("zipcode", ""),
-        city=data.get("city", ""),
-        country=data.get("common_country_iso_a2", ""),
+        name=_build_name(data),
+        address=full_street,
+        postal_code=data.get("zipcode") or "",
+        city=data.get("city") or "",
+        country=data.get("common_country_iso_a2") or "",
         phone=data.get("phone_mobile") or data.get("phone_office") or data.get("phone_home"),
         email=data.get("email"),
     )
@@ -76,7 +93,10 @@ def map_order(
     marketplace_id: Optional[int],
     brand: Brand,
 ) -> Order:
-    currency_info = raw.get("currency", {})
+    # `currency` is a plain ISO 4217 string per the spec (e.g. "EUR"), not an object
+    currency = raw.get("currency") or "EUR"
+    original_currency = raw.get("original_currency") or currency
+
     order_date = _parse_dt(raw.get("marketplace_order_date")) or datetime.now()
     updated_at = _parse_dt(raw.get("updated_at"))
 
@@ -100,7 +120,7 @@ def map_order(
         eur_amount_incl_vat=total_incl,
         eur_shipping_fee_excl_vat=Decimal("0"),
         eur_shipping_fee_incl_vat=shipping_incl,
-        original_currency=currency_info.get("iso_a3", "EUR"),
+        original_currency=original_currency,
         original_amount=Decimal(str(raw.get("original_total_order", "0"))),
         original_shipping_fee=Decimal(str(raw.get("original_shipping", "0"))),
         items=items,
@@ -152,13 +172,21 @@ def map_invoice(
 
     items, subtotal, _ = _map_invoice_items(raw, tax_rate)
 
+    # `currency` is a plain ISO 4217 string per the spec
+    currency = raw.get("currency") or "EUR"
+
     shipping_incl = Decimal(str(raw.get("shipping", 0)))
     shipping_excl = (shipping_incl * 100) / (100 + tax_rate)
 
     payments = raw.get("payments", [])
     payment_info = payments[0] if payments else {}
     payment_method = payment_info.get("type", "")
-    invoice_number = str(payment_info.get("id") or random.randint(3_500_000, 4_999_999))
+
+    # Use the order-level invoice_number from Lengow if present (spec: Order.invoice_number)
+    invoice_number = (
+        raw.get("invoice_number")
+        or str(payment_info.get("id") or random.randint(3_500_000, 4_999_999))
+    )
 
     return Invoice(
         invoice_number=invoice_number,
@@ -180,7 +208,7 @@ def map_invoice(
         shipping_cost=shipping_excl,
         payment_method=payment_method,
         invoice_status="paid",
-        currency=raw.get("currency", {}).get("iso_a3", "EUR"),
+        currency=currency,
         payment_plan_commission=Decimal("0"),
     )
 

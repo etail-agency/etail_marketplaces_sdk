@@ -140,14 +140,15 @@ class LengowClient(BaseAggregator):
         token, account_id = self._get_token()
         headers = {"Authorization": token}
 
-        from_date = (datetime.now().date() - timedelta(days=days_ago)) if days_ago else None
+        # Spec requires format: date-time (ISO 8601)
+        from_dt = (datetime.now() - timedelta(days=days_ago)) if days_ago else None
         params: dict = {
             "account_id": account_id,
             "marketplace": self.marketplace_name,
             "page_size": 100,
         }
-        if from_date:
-            params["marketplace_order_date_from"] = str(from_date)
+        if from_dt:
+            params["marketplace_order_date_from"] = from_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
         url: Optional[str] = BASE_URL + "v3.0/orders/"
         while url:
