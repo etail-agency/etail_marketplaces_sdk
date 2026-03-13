@@ -63,7 +63,7 @@ from etail_marketplaces_sdk.aggregators.channelengine.client import ChannelEngin
 from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
 from etail_marketplaces_sdk.models.brand import Brand
 
-brand = Brand(id=9, name="Villeroy & Boch", slug="villeroy_boch", initials="VNB",
+brand = Brand(id=1, name="My Brand", slug="my_brand", initials="MB",
               logo_url="", company_info="", invoice_footer_text="")
 
 # orders_api=True → use /v2/orders (full address data, all statuses)

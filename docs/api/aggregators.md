@@ -49,7 +49,7 @@ client supports both via the `orders_api` constructor flag.
 > `fetch_invoices()` automatically filters to `SHIPPED` and `CLOSED` orders,
 > so you always get invoice-ready records without extra filtering.
 
-### Usage — orders API mode (recommended for VNB)
+### Usage — orders API mode
 
 ```python
 from decimal import Decimal
@@ -58,11 +58,11 @@ from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
 from etail_marketplaces_sdk.models.brand import Brand
 
 brand = Brand(
-    id=9,
-    name="Villeroy & Boch",
-    slug="villeroy_boch",
-    initials="VNB",
-    logo_url="https://storage.googleapis.com/invoices-services/vnb/vnb_logo.png",
+    id=1,
+    name="My Brand",
+    slug="my_brand",
+    initials="MB",
+    logo_url="https://storage.example.com/my-brand/logo.png",
     company_info="",
     invoice_footer_text="",
 )

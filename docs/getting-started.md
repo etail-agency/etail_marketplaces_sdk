@@ -78,10 +78,9 @@ invoices = client.fetch_invoices(days_ago=30)
 
 ## ChannelEngine — orders API (`orders_api=True`)
 
-Use this mode when the tenant's API key only has access to `GET /v2/orders`
-(e.g. Villeroy & Boch).  This endpoint returns all order statuses and includes
-full billing and shipping address data — making it the richer data source when
-available.
+Use this mode when the tenant's API key only has access to `GET /v2/orders`.
+This endpoint returns all order statuses and includes full billing and shipping
+address data — making it the richer data source when available.
 
 `fetch_invoices()` automatically restricts results to `SHIPPED` and `CLOSED`
 orders, so no extra filtering is needed.
@@ -93,18 +92,18 @@ from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
 from etail_marketplaces_sdk.models.brand import Brand
 
 brand = Brand(
-    id=9,
-    name="Villeroy & Boch",
-    slug="villeroy_boch",
-    initials="VNB",
-    logo_url="https://storage.googleapis.com/invoices-services/vnb/vnb_logo.png",
+    id=1,
+    name="My Brand",
+    slug="my_brand",
+    initials="MB",
+    logo_url="https://storage.example.com/my-brand/logo.png",
     company_info="",
     invoice_footer_text="",
 )
 
 client = ChannelEngineClient(
     credentials=ApiKeyCredentials(api_key="<api-key>"),
-    base_url="https://villeroy-boch-prod-etail.channelengine.net/api",
+    base_url="https://<tenant>.channelengine.net/api",
     brand=brand,
     marketplace_id=42,
     tax_rate=Decimal("20"),
