@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [0.2.4] - 2026-03-13
+
+### Fixed — spec alignment (`specs/aggregators/shopping_feed/order.yml` v1.0)
+
+- **Client-side date filter replaced with `since` query param**: `_fetch_raw_orders()` was computing a cutoff date and filtering the response client-side, iterating all pages and assuming orders were sorted by date (not guaranteed by the spec). Replaced with the `since` query parameter defined in the spec (`GET /v1/store/{storeId}/order`), so the API performs server-side filtering before pagination.
+- **Wrong `channelId` field**: `map_order()` and `map_invoice()` read `raw.get("channelId")` which does not exist as a top-level field in the response. Per the spec example, channel info lives at `_embedded.channel.id`. Fixed to read `_embedded.channel.id` with a `channelId` top-level fallback for backwards compatibility.
+- **`street2` ignored in address mapping**: The spec shows addresses include a `street2` field (second address line). `_map_address()` now populates `address_line2` and `_map_invoice_address()` appends it to the full street string. The `Address` model already had `address_line2: Optional[str]` — it was simply not being set.
+- **`company` ignored in address name**: The spec example shows addresses include a `company` field. Both address mappers now include the company in the display name, consistent with other platform mappers.
+
+### Documentation
+- Updated spec cross-reference in `client.py` and `mappers.py` from non-existent `openapi.json` to the correct `order.yml` and `auth.yml` YAML files.
+
 ## [0.2.3] - 2026-03-13
 
 ### Fixed — spec alignment (`specs/aggregators/channelengine/openapi.json` v2.22.11)

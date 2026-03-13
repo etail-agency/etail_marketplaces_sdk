@@ -1,0 +1,177 @@
+openapi: 3.1.0
+info:
+  title: Ticket API
+  description: |-
+    The ticket API allows you to access the status and result of asynchronous tasks.
+    Each ticket has its own processing state.
+
+    For each task, this state can be:
+
+    | state          | description
+    |----------------|------------------------------------------------------------------|
+    | scheduled      | The task has been marked for processing, but has not occurred yet|
+    | running        | The task is currently being processed                            |
+    | canceled       | The task has been refused                                        |
+    | succeed        | The task has been successfully processed, and is now completed   |
+    | failed         | The task has been processed, but an error has occured            |
+
+    Two "macro" states are also supported :
+
+    | macro          | filter states
+    |----------------|-------------------------------------------------------------|
+    | processing     | scheduled, running                                          |
+    | processed      | canceled, failed, succeed                                   |
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+paths:
+  '/v1/store/{storeId}/ticket':
+    get:
+      summary: List Tickets
+      description: |-
+        ### Check on the progress of your operations
+
+        When an operation is made, the API assigns a *ticket ID* to it, and a *batch ID*. When several operations are made together, the API assigns a *ticket ID* to each operation, and a common *batch ID* to all of them.
+
+        When calling this endpoint, you will receive all the *tickets* for your store, so that you can be able to target the operations you wish to keep track of.
+
+        *Let's look at it using a garage metaphor*: let's say that you dropped your car to the garage in order have the tyres changed and the oil changed as well.
+        - The *tasks* are:
+        1. changing the tyres
+        2. changing the oil
+        - Each of these tasks will have a *ticket* associated as to trace those *tasks*
+        - A *batch* is the file number of your car in the garage
+
+        You can check on the progress of each separate *task* with the *ticket ID*, but also on the global progress with the *batch ID*. The *batch* will be completed when all the *tickets* inside this batch are completed as well.
+
+        ### Payload filters
+
+        Some query parameters allow you to filter tickets based on data contained in the payload. However, these advanced filters have stricter requirements.
+
+        When using a payload filter, you must also use a specific type parameter in your query. The type parameter required for each payload filter is specified in the query parameters section below.
+      operationId: v1.store-ticket-collection.fetch
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: batchId
+          in: query
+          description: Filter tickets by batch.
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: Filter tickets by state.
+          schema:
+            type: string
+            enum:
+              - scheduled
+              - running
+              - canceled
+              - succeed
+              - failed
+        - name: type
+          in: query
+          description: |
+            Filter tickets by type. Only exact match searches are allowed. The list of possible types can be found below:
+
+             - Orders tickets:
+               - `order.acknowledge`, `order.unacknowledge`, `order.notify.acceptance`, `order.notify.refusal`, `order.notify.cancellation`, `order.notify.shipment`, `order.notify.refund`, `order.notify.upload-documents`
+             - Import tickets:
+               - `feed.update.scheduled`
+             - Export tickets:
+               - `feed.export.wrote`, `export.feed.requested`
+             - AI tickets:
+               - `ai.prediction.categorymapping.requested`, `ai.prediction.attributemapping.requested`
+          schema:
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - name: payloadId
+          in: query
+          description: Must match the order id. Must be used with **type** parameter containing value `order`
+          schema:
+            type: string
+        - name: payloadChannelId
+          in: query
+          description: Must match the channel id. Must be used with **type** parameter containing value `export`
+          schema:
+            type: integer
+        - name: payloadFeedId
+          in: query
+          schema:
+            type: integer
+          description: Must match the feed id. Must be used with **type** parameter containing value `ai.prediction`
+      responses:
+        '200':
+          description: ''
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: ./ticket.model.oas2.yml#/components/schemas/TicketCollectionHal
+  '/v1/store/{storeId}/ticket/{ticketId}':
+    get:
+      summary: View a Ticket
+      description: |-
+        ### Check on the progress of the operations of a specific ticket
+
+        Now that you are able to fetch all the existing tickets for your store, you might have found the one which contains the operations you want to follow up on. With its *ticket ID* and your *store ID*, you can target this specific ticket as to check on specific operations.
+      operationId: v1.store-ticket.fetch
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./ticket.model.oas2.yml#/components/schemas/TicketHal
+components:
+  parameters:
+    storeId:
+      name: storeId
+      in: path
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

@@ -1,0 +1,206 @@
+openapi: 3.1.0
+info:
+  title: Catalog API
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+tags:
+  - name: Inventory
+  - name: catalog
+  - name: Operation
+  - name: Pricing
+  - name: Fields mapping
+  - name: Selection
+  - name: Product
+  - name: Recommendation
+  - name: Category
+  - name: Fields
+  - name: Feed
+  - name: Import History
+  - name: new catalog
+  - name: Supplemental Feed
+  - name: Main Feed
+  - name: Feed (main & supp) import
+  - name: Virtual Fields
+paths:
+  '/v1/catalog/{catalogId}':
+    get:
+      tags:
+        - Catalog
+      summary: View Catalog
+      description: |
+        ### View your catalog, its statistics and enabled features
+
+        Your *catalog* is the list of your products, in its source version (it is what exists on Shoppingfeed after your feed has been imported). 
+        With this endpoint and your *Catalog ID*, you can get statistics about your catalog as it currently exists: the number of references, parent products and variant products.
+        You can also view if a feature is enabled or not under the *feature* property 
+      operationId: v1.catalog.get
+      parameters:
+        - name: catalogId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+        required: false
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./catalog.model.oas2.yml#/components/schemas/CatalogHal
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          $ref: '#/components/responses/CatalogNotFound'
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      security:
+        - Token: []
+      x-private: true
+      x-internal: false
+      x-codegen-request-body-name: body
+components:
+  responses:
+    CatalogNotFound:
+      description: 'If no catalog is found for given key, a not found code is returned.'
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+          example:
+            type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+            title: Not Found
+            detail: Resource does not exist
+            status: 404
+    SelectionNotFound:
+      description: 'If no selection is found for in the catalog context, a not found response is returned.'
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+    UserNotAuthorized:
+      description: 'If your authentication credentials are not valid for the requested resource, an unauthorized code is returned.'
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+          example:
+            type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+            title: Unauthorized
+            detail: Invalid user provided
+            status: 401
+    ResourceNotFound:
+      description: ''
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+          example:
+            type: 'https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.5'
+            title: 'Cannot GET http://api.shopping-feed.com/v1/imaginary'
+            detail: Some details
+            status: 404
+    BadRequest:
+      description: ''
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+          examples:
+            Example 1:
+              value:
+                type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                title: Bad Request
+                detail: Some details
+                status: 400
+    Conflict:
+      description: ''
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+          example:
+            type: 'https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.10'
+            title: Conflict
+            detail: Some details
+            status: 409
+  parameters:
+    catalogId:
+      name: catalogId
+      in: path
+      description: 'The catalog ID, client''s ID by default.'
+      required: true
+      schema:
+        type: integer
+    inventoryId:
+      name: inventoryId
+      in: path
+      description: Product reference associated to the inventory record.
+      required: true
+      schema:
+        type: integer
+    pricingId:
+      name: pricingId
+      in: path
+      description: Product reference associated to the pricing record.
+      required: true
+      schema:
+        type: integer
+    selectionId:
+      name: selectionId
+      in: path
+      description: The selection ID
+      required: true
+      schema:
+        type: integer
+    productId:
+      name: productId
+      in: path
+      description: The ID of the product
+      required: true
+      schema:
+        type: integer
+    categoryId:
+      name: categoryId
+      in: path
+      description: The category ID.
+      required: true
+      schema:
+        type: integer
+    supplementalId:
+      name: supplementalId
+      in: path
+      description: The supplemental (feed) ID.
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+        You must include an `Authorization` header when making requests to the API:
+        > Authorization: Bearer *token* >  You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+        For example:
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

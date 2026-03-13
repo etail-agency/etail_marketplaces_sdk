@@ -11,7 +11,7 @@ Supported streams:
     invoices, analytics, ads, settlements, reviews
 """
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 from etail_marketplaces_sdk.core.streams import StreamType
 from etail_marketplaces_sdk.core.credentials import (

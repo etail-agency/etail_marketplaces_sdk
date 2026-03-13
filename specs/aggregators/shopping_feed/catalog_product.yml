@@ -1,0 +1,626 @@
+openapi: 3.1.0
+info:
+  title: Catalog/Product API
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+tags:
+  - name: Inventory
+  - name: catalog
+  - name: Operation
+  - name: Pricing
+  - name: Fields mapping
+  - name: Selection
+  - name: Product
+  - name: Recommendation
+  - name: Category
+  - name: Fields
+  - name: Feed
+  - name: Import History
+  - name: new catalog
+  - name: Supplemental Feed
+  - name: Main Feed
+  - name: Feed (main & supp) import
+  - name: Virtual Fields
+paths:
+  '/v1/catalog/{catalogId}/inventory/{inventoryId}':
+    get:
+      tags:
+        - Inventory
+      summary: View an Inventory Item
+      description: |-
+        ### Fetch an inventory item
+
+        Whenever you want to check on a specific product in your feed, to make sure its quantity is sufficient, or to verify when it was last modified, you can use this endpoint.
+        In order to obtain the inventory information, you need to pass your catalog ID and the inventory ID of the product you wish to check on.
+
+        In order to find the *inventory ID* of the product you want to examine, you will have to call on the [List Inventory Items](https://developer.shopping-feed.com/inventory-api/inventory/v1catalog-inventory-item-collectionget) endpoint.
+      operationId: v1.catalog-inventory-item.get
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+        - name: inventoryId
+          in: path
+          description: Product reference associated to the inventory record.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./catalog-inventory.model.oas2.yml#/components/schemas/InventoryItemHAL
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          description: 'If no catalog or inventory item is found for given key, a not found code is returned.'
+          content:
+            application/json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+              example:
+                type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                title: Not Found
+                detail: Resource does not exist
+                status: 404
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      x-stoplight:
+        id: sr3nf70jqj3nt
+  '/v1/catalog/{catalogId}/inventory':
+    get:
+      tags:
+        - Inventory
+      summary: List Inventory Items
+      description: |-
+        ### Fetch all the existing inventory items for your store
+
+        If you want a global view of the products of your catalog, this is the endpoint you should use. 
+        It is also here that you will be able to find the *inventory ID* of a specific product, ID which you can then use to [View an Inventory Item](https://developer.shopping-feed.com/inventory-api/inventory/v1catalog-inventory-itemget). You only need to pass your *catalog ID* and you will receive a list of all your inventory items, each item containing:
+        - its *reference* in your catalog
+        - its current *quantity*
+        - its *ID* as an inventory item
+        - its last modification date: *updatedAt*
+
+        Please note that a product will have a *reference* (that is to say its ID in the *catalog*, also know as an *SKU*), but it will also have an *ID* (that is to say its ID in the inventory). These two properties should not be confused with one another.
+      operationId: v1.catalog-inventory-item-collection.get
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+        - name: reference
+          in: query
+          description: |
+            Filter inventory items that match the reference(s).
+            You can send several values separated by coma.
+          schema:
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./catalog-inventory.model.oas2.yml#/components/schemas/InventoryPaginatedCollection
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          $ref: '#/components/responses/CatalogNotFound'
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      x-internal: false
+      x-stoplight:
+        id: krng8owalv4p5
+    put:
+      tags:
+        - Inventory
+      summary: Update Inventory
+      description: |-
+        ### Update the information of an inventory
+
+        Now that we have seen how to consult your inventory, let us see how we can update this inventory so as to be sure that the stock of your products is always up to date.
+
+        In order to update your inventory for a specific item, you will need to use your *catalog ID*, as well as the *reference* and the *quantity* you wish to update your product to.
+      operationId: v1.catalog-invetory-item-collection.update
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Collection of inventory item to update. Limited to 100 elements per batch.
+              required:
+                - inventory
+              properties:
+                inventory:
+                  maxItems: 100
+                  type: array
+                  description: A collection of inventory item. Limited to 100 elements per batch.
+                  items:
+                    $ref: ./catalog-inventory.model.oas2.yml#/components/schemas/InventoryItemPayload
+        required: false
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./catalog-inventory.model.oas2.yml#/components/schemas/InventoryCollection
+        '400':
+          description: |-
+            Bad Request
+
+            If some parameters are missing or not available a bad request code is returned
+          content:
+            application/json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+              examples:
+                Example 1:
+                  value:
+                    type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                    title: Bad Request
+                    detail: Validation failed
+                    status: 400
+                    validationMessages:
+                      - reference:
+                          isEmpty: Value is required and can't be empty
+                        quantity:
+                          isEmpty: Value is required and can't be empty
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          $ref: '#/components/responses/CatalogNotFound'
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      x-stoplight:
+        id: a60ha41dwjt0z
+      x-codegen-request-body-name: body
+  '/v1/catalog/{catalogId}/pricing/{pricingId}':
+    get:
+      tags:
+        - Pricing
+      summary: View a Pricing
+      description: |-
+        ### View the pricing of a catalog item
+
+        This endpoint will be quite useful if you wish to check on your prices: just pass the *pricing ID* of the product you wish to get the price of, and the API will return its price.
+      operationId: v1.catalog-pricing-item.get
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+        - name: pricingId
+          in: path
+          description: Product reference associated to the pricing record.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./catalog-pricing.model.oas2.yml#/components/schemas/PricingItemHAL
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          description: 'If no catalog or pricing item is found for given key, a not found code is returned.'
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+              examples:
+                Example 1:
+                  value:
+                    type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                    title: Not Found
+                    detail: Resource does not exist
+                    status: 404
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      x-stoplight:
+        id: u11pf9z8di2j5
+  '/v1/catalog/{catalogId}/pricing':
+    get:
+      tags:
+        - Pricing
+      summary: List Pricings
+      description: |-
+        ### Find out the pricing IDs of your products
+
+        By passing your *catalog ID* and the product reference, you can look for a specific product and get its *pricing ID*.
+      operationId: v1.catalog-pricing-item-collection.get
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+        - name: reference
+          in: query
+          description: |-
+            Filter pricing items that match the reference(s).
+            You can send several values separated by coma.
+          schema:
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./catalog-pricing.model.oas2.yml#/components/schemas/PricingItemPaginatedCollectionHal
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          $ref: '#/components/responses/CatalogNotFound'
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      x-stoplight:
+        id: 2mcnujzoj0khv
+    put:
+      tags:
+        - Pricing
+      summary: Update Pricing
+      description: |-
+        ### Update the price of one or several products
+
+        Call this endpoint to be able to modify your products' prices.
+      operationId: v1.catalog-pricing-item-collection.put
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Collection of pricing item to update. Limited to 100 elements per batch
+              required:
+                - pricing
+              properties:
+                pricing:
+                  maxItems: 100
+                  type: array
+                  description: Collection of pricing item to update. Limited to 100 elements per batch.
+                  items:
+                    title: Pricing item payload
+                    type: object
+                    required:
+                      - reference
+                      - price
+                    properties:
+                      reference:
+                        type: string
+                        description: The product reference which must exist in the catalog.
+                        example: PCL9017-1
+                      price:
+                        type: number
+                        description: A float value >= 0.
+                        example: 19.99
+                      originalPrice:
+                        type: number
+                        description: Item's price before discount. An optional float value. Also known as "old_price" in some parts of the Shoppingfeed app.
+                        example: 29.99
+        required: false
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                required:
+                  - _embedded
+                  - count
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Number of items actually displayed.
+                    example: 15
+                  _embedded:
+                    required:
+                      - pricing
+                    type: object
+                    properties:
+                      pricing:
+                        type: array
+                        items:
+                          $ref: ./catalog-pricing.model.oas2.yml#/components/schemas/PricingItemPayload
+        '400':
+          description: |-
+            Bad Request
+
+            If some parameters are missing or not available a bad request code is returned
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+              examples:
+                Example 1:
+                  value:
+                    type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                    title: Bad Request
+                    detail: Validation failed
+                    status: 400
+                    validationMessages:
+                      minCount: The minimum of 1 item(s) was not reached
+        '401':
+          $ref: '#/components/responses/UserNotAuthorized'
+        '404':
+          $ref: '#/components/responses/CatalogNotFound'
+        '405':
+          $ref: ./common.oas2.yml#/components/responses/405
+      x-stoplight:
+        id: w3o0r7gnerzhw
+      x-codegen-request-body-name: body
+  '/v1/catalog/{catalogId}/reference':
+    get:
+      tags:
+        - Product
+      summary: List References
+      description: |-
+        ### List all the references of your catalog in a flat manner
+
+        With your *Catalog ID*, you can use this endpoint to list all the references of your catalog without any hierarchy between the references. That is to say, products and their variants will be listed in a flat manner, at the same level.
+      operationId: v1.catalog-reference-collection.get
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+        - name: reference
+          in: query
+          description: Single value or comma separated values that will be matched exactly (ABC will not return ABCD).
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: |-
+            Single value or comma separated values, expected states:
+            - published
+            - unpublished
+          schema:
+            type: string
+            enum:
+              - published
+              - unpublished
+        - name: id
+          in: query
+          description: |
+            * Single or multiple values allowed 
+            * Use comma to separate values 
+            * Exact match expected on the Id
+          schema:
+            type: integer
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - name: publishedBefore
+          in: query
+          description: |
+            * one date allowed 
+            * use ISO8601 format date and time, example: "2017-03-07T13:26:33" 
+            * references published before the given date will be returned
+          schema:
+            type: string
+        - name: publishedAfter
+          in: query
+          description: |
+            * one date allowed 
+            * use ISO8601 format date and time, example: "2017-03-07T13:26:33" 
+            * references published after the given date will be returned
+          schema:
+            type: string
+        - name: selectionId
+          in: query
+          description: |
+            * only one value allowed 
+            * Exact match required
+            * Will return all the references present in the provided selection
+          schema:
+            type: integer
+        - name: search
+          in: query
+          description: |
+            * only one value allowed 
+            * Data containing product name OR reference value will be returned 
+            * Not an exact match required.
+          schema:
+            type: string
+        - name: brandId
+          in: query
+          description: |
+            * Single or multiple values allowed 
+            * Use comma to separate values 
+            * Exact match expected on the Id
+          schema:
+            type: integer
+        - name: categoryId
+          in: query
+          description: |
+            * Single or multiple values allowed 
+            * Use comma to separate values 
+            * Exact match expected on the Id
+          schema:
+            type: integer
+        - name: price
+          in: query
+          description: 'Price of the product, as a float value'
+          schema:
+            type: string
+        - name: priceOperator
+          in: query
+          description: 'Should be used together with the ''price'' filter. Allowed values : eq, gt, gte, lt, lte. Default value is ''eq''. '
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          description: Quantity / stock of the product
+          schema:
+            type: string
+        - name: quantityOperator
+          in: query
+          description: 'Should be used together with the ''quantity'' filter. Allowed values : eq, gt, gte, lt, lte. Default value is ''eq''. '
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./catalog-product.model.oas2.yml#/components/schemas/ReferencePaginatedCollectionHal
+      security:
+        - Token: []
+      x-private: true
+      x-internal: false
+      x-stoplight:
+        id: ivxt6birebnvv
+  '/v1/catalog/{catalogId}/reference/{referenceId}':
+    get:
+      tags:
+        - Product
+      summary: View a Reference
+      description: |-
+        ### View a specific reference of your catalog
+
+        You can view the details of a specific reference of your catalog by passing your *Catalog ID* and the *Reference ID* to this endpoint. You can see in the response details that this endpoint can provide a lot of information for a reference.
+      operationId: v1.catalog-reference.get
+      parameters:
+        - $ref: '#/components/parameters/catalogId'
+        - name: referenceId
+          in: path
+          description: The reference Id.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./catalog-product.model.oas2.yml#/components/schemas/ReferenceHal
+        '404':
+          $ref: ./common.oas2.yml#/components/responses/404
+      security:
+        - Token: []
+      x-private: true
+      x-internal: false
+      x-stoplight:
+        id: hvyrm12cq2qgs
+components:
+  responses:
+    CatalogNotFound:
+      description: 'If no catalog is found for given key, a not found code is returned.'
+      content:
+        application/hal+json:
+          schema:
+            title: Error Response
+            required:
+              - detail
+              - status
+              - title
+              - type
+            type: object
+            properties:
+              type:
+                type: string
+              title:
+                type: string
+              detail:
+                type: string
+              status:
+                type: integer
+          example:
+            type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+            title: Not Found
+            detail: Resource does not exist
+            status: 404
+    SelectionNotFound:
+      description: 'If no selection is found for in the catalog context, a not found response is returned.'
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+    UserNotAuthorized:
+      description: 'If your authentication credentials are not valid for the requested resource, an unauthorized code is returned.'
+      content:
+        application/json:
+          schema:
+            $ref: ./common.oas2.yml#/components/schemas/error-response
+          example:
+            type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+            title: Unauthorized
+            detail: Invalid user provided
+            status: 401
+  parameters:
+    catalogId:
+      name: catalogId
+      in: path
+      description: 'The catalog ID, client''s ID by default.'
+      required: true
+      schema:
+        type: integer
+    inventoryId:
+      name: inventoryId
+      in: path
+      description: Product reference associated to the inventory record.
+      required: true
+      schema:
+        type: integer
+    pricingId:
+      name: pricingId
+      in: path
+      description: Product reference associated to the pricing record.
+      required: true
+      schema:
+        type: integer
+    selectionId:
+      name: selectionId
+      in: path
+      description: The selection ID
+      required: true
+      schema:
+        type: integer
+    productId:
+      name: productId
+      in: path
+      description: The ID of the product
+      required: true
+      schema:
+        type: integer
+    categoryId:
+      name: categoryId
+      in: path
+      description: The category ID.
+      required: true
+      schema:
+        type: integer
+    supplementalId:
+      name: supplementalId
+      in: path
+      description: The supplemental (feed) ID.
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-stoplight:
+  id: o3i1eldmgssz5
+x-original-swagger-version: '2.0'

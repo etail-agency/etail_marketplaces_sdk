@@ -4,9 +4,10 @@ ShoppingFeed aggregator client.
 Handles authentication, page-based pagination, and HTTP calls.
 Returns raw dict responses — all field mapping lives in mappers.py.
 
-OpenAPI spec: specs/aggregators/shopping_feed/openapi.json
+OpenAPI specs: specs/aggregators/shopping_feed/order.yml  (orders / list / filter)
+               specs/aggregators/shopping_feed/auth.yml   (Bearer token auth)
 API base URL:  https://api.shopping-feed.com/v1/
-Docs:          https://merchant-api-doc.shopping-feed.com/
+Docs:          https://developer.shopping-feed.com/order-api
 """
 
 from __future__ import annotations
@@ -100,11 +101,12 @@ class ShoppingFeedClient(BaseAggregator):
 
     def _fetch_raw_orders(self, days_ago: Optional[int] = None) -> list[dict]:
         orders: list[dict] = []
-        cutoff: Optional[datetime] = None
-        if days_ago is not None:
-            cutoff = datetime.now(timezone.utc) - timedelta(days=days_ago)
-
         params: dict = {"page": 1, "limit": 100}
+
+        if days_ago is not None:
+            since = datetime.now(timezone.utc) - timedelta(days=days_ago)
+            # The spec's `since` param accepts ISO 8601 (order.yml: GET /v1/store/{storeId}/order)
+            params["since"] = since.strftime("%Y-%m-%dT%H:%M:%S")
 
         while True:
             response = requests.get(self._api_url, headers=self._headers, params=params, timeout=30)
@@ -113,17 +115,7 @@ class ShoppingFeedClient(BaseAggregator):
             response.raise_for_status()
             data = response.json()
 
-            page_orders = data.get("_embedded", {}).get("order", [])
-
-            if cutoff:
-                for order in page_orders:
-                    created_at = datetime.fromisoformat(order["createdAt"].replace("Z", "+00:00"))
-                    if created_at >= cutoff:
-                        orders.append(order)
-                    else:
-                        return orders
-            else:
-                orders.extend(page_orders)
+            orders.extend(data.get("_embedded", {}).get("order", []))
 
             if params["page"] >= data.get("pages", 1):
                 break

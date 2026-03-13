@@ -1,0 +1,359 @@
+openapi: 3.1.0
+info:
+  title: Feed API
+  description: |-
+    ### Introduction
+
+    *What is a feed?* A feed is the combination of your catalog, a specific channel, a specific country, and its activity state (A feed can be active, inactive, or closed). 
+    It is basically a version of your catalog which is meant to be sent to a specific channel. If you have activated three channels for your store on Shopping Feed, then you will have three active feeds. If you close one of these channels, then you still will have three feeds, two of them active, another closed.
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+tags:
+  - name: Feed
+  - name: Catalog category settings
+  - name: Catalog product settings
+  - name: Default settings
+  - name: Feed report
+paths:
+  /v1/feed:
+    get:
+      summary: List Feeds
+      description: |
+        ### List the existing feeds of your store
+
+        *What is a feed?* A feed is the combination of your catalog, a specific channel, a specific country, and its activity state (A feed can be active, inactive, or closed). 
+        It is basically a version of your catalog which is meant to be sent to a specific channel. If you have activated three channels for your store on Shopping Feed, then you will have three active feeds. If you close one of these channels, then you still will have three feeds, two of them active, another closed.
+
+        A feed is active when it is in use; inactive when the user has enabled the 'vacation' mode or has been automatically suspended; it is closed when the channel has been closed. 
+
+        This endpoint allows you to fetch the existing feeds of your store; a series of different filters is available so that you can narrow it down to less results if you want to.
+      operationId: v1.feed-collection.fetch
+      parameters:
+        - name: catalogId
+          in: query
+          description: List of catalog ids (comma-separated values)
+          schema:
+            type: integer
+        - name: channelId
+          in: query
+          description: Search by channel
+          schema:
+            type: integer
+        - name: country
+          in: query
+          description: The ISO 3166-1 alpha-2 country code.
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: 'List of states (comma-separated values). Valid state values are : `active` `inactive` `closed`'
+          schema:
+            type: string
+        - name: id
+          in: query
+          description: List of feed ids (comma-separated values).
+          schema:
+            type: integer
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - name: carrierMatching
+          in: query
+          description: Carrier matching feature status
+          schema:
+            type: string
+            enum:
+              - enabled
+              - disabled
+        - name: excludeChannelType
+          in: query
+          description: 'List of channel types to exclude from the results (comma-separated values). Valid channel types include : ads, affiliation, export, marketplace, retargeting, shopbot, shopbots. When the value is NOT provided for "excludeChannelType", we exclude by default the "export" type. If you want a list of ALL feeds, nothing excluded, you need to pass the query parameter with NO value - "?excludeChannelType=" or use includeChannelType filter instead'
+          allowEmptyValue: true
+          schema:
+            type: string
+        - schema:
+            type: string
+          in: query
+          name: includeChannelType
+          description: 'List of channel types to include from the results (comma-separated values). Valid channel types include : `ads` `affiliation` `export` `marketplace` `retargeting` `shopbot` `shopbots`'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./feed.model.oas2.yml#/components/schemas/FeedPaginatedCollectionHal
+              examples:
+                Example 1:
+                  value:
+                    _embedded:
+                      feed:
+                        - id: 1234
+                          catalogId: 5678
+                          catalogSelectionId: 15684911
+                          channelId: 66
+                          country: US
+                          state: active
+                          openedAt: '2019-04-08T16:11:56+00:00'
+                          closedAt: '2019-11-08T11:34:56+00:00'
+                          carrierMatching: enabled
+                          name: Amazon FR
+                          taxonomyId: null
+                          _links:
+                            self:
+                              href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                            catalog:
+                              href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                            channel:
+                              href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                            category:
+                              href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      prev:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      next:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      first:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      last:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    total: 12
+                    limit: 2
+                    pages: 6
+                    page: 3
+                    count: 2
+        '401':
+          $ref: ./common.oas2.yml#/components/responses/401
+        '403':
+          $ref: ./common.oas2.yml#/components/responses/403
+        '404':
+          $ref: ./common.oas2.yml#/components/responses/404
+    post:
+      summary: Create a Feed
+      description: |-
+        ### Create a new feed for your store
+
+        As mentioned earlier, a feed is a specific version of your catalog which is meant to be sent to a specific channel. So, in order to create one, you must identify your catalog, but also the channel to which you want to send your catalog, and the country that you wish to target. All of these elements together will allow you to create a feed, which will then be available for use.
+      operationId: v1.feed.post
+      parameters:
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                feed:
+                  $ref: ./feed.model.oas2.yml#/components/schemas/FeedPayload
+        required: false
+      responses:
+        '201':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./feed.model.oas2.yml#/components/schemas/FeedHal
+              examples:
+                Example 1:
+                  value:
+                    id: 1234
+                    catalogId: 5678
+                    catalogSelectionId: 15684911
+                    channelId: 66
+                    country: US
+                    state: active
+                    openedAt: '2019-04-08T16:11:56+00:00'
+                    closedAt: '2019-11-08T11:34:56+00:00'
+                    carrierMatching: enabled
+                    name: Amazon FR
+                    taxonomyId: null
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      catalog:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      channel:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      category:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+        '400':
+          description: |-
+            A 400 code will be returned in the following case :
+
+            - The provided catalogId do not exists
+            - The provided channelId do not exists
+            - The provided country is not available for provided channel
+            - The provided country is not available for provided catalog
+            - A feed already exists for the provided catalogId, channelId and country
+          content: {}
+      security:
+        - Token: []
+      x-codegen-request-body-name: body
+  '/v1/feed/{feedId}':
+    get:
+      summary: View a Feed
+      description: |-
+        ### Fetch a specific feed
+
+        If you wish to obtain information about a feed, you can also call the API to view its details, by passing its *feed ID*. You will then receive all the information which is relevant to this particular feed.
+      operationId: v1.feed.fetch
+      parameters:
+        - $ref: '#/components/parameters/feedId'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./feed.model.oas2.yml#/components/schemas/FeedHal
+              examples:
+                Example 1:
+                  value:
+                    id: 1234
+                    catalogId: 5678
+                    catalogSelectionId: 15684911
+                    channelId: 66
+                    country: US
+                    state: active
+                    openedAt: '2019-04-08T16:11:56+00:00'
+                    closedAt: '2019-11-08T11:34:56+00:00'
+                    carrierMatching: enabled
+                    name: Amazon FR
+                    taxonomyId: null
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      catalog:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      channel:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      category:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+    put:
+      summary: Update a Feed
+      description: |-
+        ### Update an existing feed
+
+        Once a feed has been created you may use this endpoint to change its state. A feed can be active, inactive, or closed.
+      operationId: v1.feed.put
+      parameters:
+        - $ref: '#/components/parameters/feedId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                feed:
+                  required:
+                    - state
+                  type: object
+                  properties:
+                    state:
+                      type: string
+                      description: The feed state.
+                      example: active
+                      enum:
+                        - active
+                        - inactive
+                        - closed
+        required: false
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./feed.model.oas2.yml#/components/schemas/FeedHal
+              examples:
+                Example 1:
+                  value:
+                    id: 1234
+                    catalogId: 5678
+                    catalogSelectionId: 15684911
+                    channelId: 66
+                    country: US
+                    state: active
+                    openedAt: '2019-04-08T16:11:56+00:00'
+                    closedAt: '2019-11-08T11:34:56+00:00'
+                    carrierMatching: enabled
+                    name: Amazon FR
+                    taxonomyId: null
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      catalog:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      channel:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      category:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+        '400':
+          description: A 400 code will be returned if provided status is not an allowed value.
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+        '404':
+          $ref: ./common.oas2.yml#/components/responses/404
+      security:
+        - Token: []
+      x-codegen-request-body-name: body
+components:
+  parameters:
+    feedId:
+      name: feedId
+      in: path
+      description: The feed ID
+      required: true
+      schema:
+        type: integer
+    catalogCategoryId:
+      name: catalogCategoryId
+      in: path
+      description: The catalog category ID
+      required: true
+      schema:
+        type: integer
+    channelAttributeId:
+      name: channelAttributeId
+      in: path
+      description: The channel attribute ID
+      required: true
+      schema:
+        type: integer
+    catalogProductId:
+      name: catalogProductId
+      in: path
+      description: The catalog product ID
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

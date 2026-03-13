@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: shopping-feed-api V1
+  description: ''
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+  summary: Update a store
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+paths:
+  '/v1/store/{storeId}':
+    get:
+      summary: View a Store
+      description: |-
+        ### Get relevant information about your store
+
+        With this endpoint, you can get relevant information about your store's status, and the number of new orders in the last 24 hours on it.
+
+        It will be quite useful to get a bird's eye view of the essential information about your store.
+      operationId: v1.store.get
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./store.model.oas2.yml#/components/schemas/StoreWithOrderHal
+              examples:
+                Example 1:
+                  value:
+                    id: 12548
+                    name: Shopping-Feed
+                    customName: string
+                    status: active
+                    email: example@example.com
+                    country: FR
+                    currency: EUR
+                    subscriptionPlan:
+                      name: none
+                    createdAt: '2017-09-25T09:40:39+00:00'
+                    deletedAt: string
+                    feed:
+                      url: 'http://www.website.com/ProductFeed'
+                      source: shopify
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    _embedded:
+                      order:
+                        storeId: 12548
+                        newCount: 12
+                        _links:
+                          self:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+    parameters:
+      - schema:
+          type: string
+        name: storeId
+        in: path
+        required: true
+  '/v1/store/{storeId}/warehouse':
+    get:
+      tags:
+        - Warehouse
+      summary: List Warehouses
+      description: |-
+        ### List the existing warehouses
+
+        This endpoint will allow you to list the existing warehouses for your store. 
+                
+        When shipping orders, your warehouse data will be sent to channels which request the adress(es) from which your products are shipped.
+      operationId: v1.store-warehouse-collection.fetch
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - name: type
+          in: query
+          description: Filter by type
+          schema:
+            pattern: default
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./store.model.oas2.yml#/components/schemas/WarehouseCollectionHal
+              examples:
+                Example 1:
+                  value:
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      prev:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      next:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      first:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      last:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    total: 12
+                    limit: 2
+                    pages: 6
+                    page: 3
+                    count: 2
+                    _embedded:
+                      warehouse:
+                        - id: ab34567f
+                          storeId: 0
+                          name: string
+                          default: true
+                          address:
+                            company: string
+                            street: string
+                            street2: string
+                            postalCode: string
+                            city: string
+                            state: string
+                            country: string
+    post:
+      tags:
+        - Warehouse
+      summary: Create a Warehouse
+      description: |
+        ### Add a warehouse to your store
+
+        This endpoint will allow you to add a new warehouse to your store. We advise you to use an identifiable name to be able to easily differentiate your various warehouses on the Shopping Feed interface.
+        - If this is the first warehouse you add to your store, it will automatically be set as your default warehouse.
+        - If not, you will be able to set it as the new default warehouse for your store by setting the **default** property at *true*
+        - If it's not defined, the **default** property will be set at *false* (except if you don't already have a default warehouse)
+
+        You may only have one default warehouse and, as the name implies, the default warehouse data will be sent to channels when shipping an order, unless specified otherwise.
+      operationId: v1.store-warehouse.create
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                warehouse:
+                  $ref: ./store.model.oas2.yml#/components/schemas/WarehousePayload
+        required: false
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./store.model.oas2.yml#/components/schemas/WarehouseHal
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/warehouse/{warehouseId}':
+    get:
+      tags:
+        - Warehouse
+      summary: View a Warehouse
+      description: |-
+        ### View a warehouse
+
+        This endpoint will allow you to view the details of a specific warehouse for your store.
+
+        The **default** property will indicate whether or not this warehouse data is sent by default to channels.
+      operationId: v1.store-warehouse.fetch
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: warehouseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ./store.model.oas2.yml#/components/schemas/WarehouseHal
+      x-codegen-request-body-name: body
+    put:
+      tags:
+        - Warehouse
+      summary: Update a Warehouse
+      description: |
+        ### Make changes to an existing warehouse
+
+        This endpoint will allow you to modify the data of an existing warehouse.
+
+        - If the **default** property is set at *true*, it may not be modified since one warehouse needs to be set as default at all times
+        - If not, setting this property to *true* for a specific warehouse will automatically set it at *false* for the other warehouse
+      operationId: v1.store-warehouse.put
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: warehouseId
+          description: ''
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                warehouse:
+                  $ref: ./store.model.oas2.yml#/components/schemas/WarehousePayload
+        required: false
+      responses:
+        '204':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./store.model.oas2.yml#/components/schemas/WarehouseHal
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - Warehouse
+      summary: Delete a Warehouse
+      description: |-
+        ### Delete a warehouse
+
+        This endpoint will allow you to delete a specific warehouse for your store.
+
+        If you wish to delete a default warehouse, you may only do so if you only have a single warehouse in your store.
+
+        Otherwise, you first need to set a different default warehouse.        
+
+        **Proceed with caution**: When deleted, the warehouse data can no longer be recovered.
+      operationId: v1.store-warehouse.delete
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: warehouseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+          content: {}
+components:
+  parameters:
+    storeId:
+      name: storeId
+      in: path
+      description: The store ID.
+      required: true
+      schema:
+        type: integer
+    carrierId:
+      name: carrierId
+      in: path
+      description: The carrier ID.
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

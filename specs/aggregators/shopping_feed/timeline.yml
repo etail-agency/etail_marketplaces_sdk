@@ -1,0 +1,380 @@
+openapi: 3.1.0
+info:
+  title: Store Timeline API
+  description: |-
+    Timeline API allows to consult events, related to a store, made by automated task by Shopping Feed applications.
+
+    **Events**
+
+    | context        | actions                               | name                |
+    |----------------|---------------------------------------|---------------------|
+    | import         | ask / start / finish / error / cancel | feed.import         |
+    | export         | ask / start / finish / error / cancel | feed.export         |
+    | order          | push / ship                           | order.lifecycle     |
+    | segmentation   | create / update / delete              | rule.segmentation   |
+    | transformation | create / update / delete              | rule.transformation |
+  contact:
+    name: support
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+tags:
+  - name: Timeline
+paths:
+  '/v1/store/{storeId}/timeline/{timelineId}':
+    get:
+      summary: View a Timeline Event
+      description: |-
+        ### Fetch an event of your store
+
+        By calling this endpoint, you can target a specific timeline event in order to get more details on it, for example its precise date and time of occurrence.
+
+        Several types of events exist. The response structure depends to which larger domain they are tied to.
+      operationId: v1.store-timeline-event.get
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: timelineId
+          in: path
+          description: The store ID
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: |-
+            Like said above, each event type returns a response with a different structure. You may choose between the various responses in the body through two dropdown menus. 
+
+            The first one is located at the top of the response body and the second one will only appear if you chose "Other Operations Event".It is located further down and it allows you to choose between different structures for the data object.
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./store-timeline.model.oas2.yml#/components/schemas/TimelineEventHal
+              examples:
+                Timeline import event:
+                  value:
+                    id: string
+                    name: feed.import
+                    storeId: 0
+                    action: 'start, finish, push, create, update...'
+                    occurredAt: '2019-08-24T14:15:22Z'
+                    data:
+                      - feedId: string
+                        feedType: string
+                        feedName: string
+                        message: string
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      store:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                Timeline export event:
+                  value:
+                    id: string
+                    name: feed.import
+                    storeId: 0
+                    action: 'start, finish, push, create, update...'
+                    occurredAt: '2019-08-24T14:15:22Z'
+                    data:
+                      message: string
+                    _embedded:
+                      channel:
+                        id: 123
+                        name: amazon
+                        type: marketplace
+                        _links:
+                          image:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                          self:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      store:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                Timeline rule event:
+                  value:
+                    id: string
+                    name: feed.import
+                    storeId: 0
+                    action: 'start, finish, push, create, update...'
+                    occurredAt: '2019-08-24T14:15:22Z'
+                    data:
+                      - reference: string
+                        name: string
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      store:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                Timeline order event:
+                  value:
+                    id: string
+                    name: feed.import
+                    storeId: 0
+                    action: 'start, finish, push, create, update...'
+                    occurredAt: '2019-08-24T14:15:22Z'
+                    data:
+                      - reference: string
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      store:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+      security:
+        - Token: []
+  '/v1/store/{storeId}/timeline':
+    get:
+      summary: List Timeline Events
+      description: |-
+        ### List the timeline events of your store
+
+        This endpoint allows you to list the events of your store, for a specific period of time which you can define in the query parameters.
+        An *event* can be an order operation, an automatic export to a channel, a scheduled export to a channel, etc.
+      operationId: v1.store-timeline-event-collection.get
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: name
+          in: query
+          description: A comma separated list of event name to filter
+          schema:
+            type: string
+        - name: action
+          in: query
+          description: A list of comma separated of operations to filter
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: 'Show events occurred after datetime (format : ISO 8601)'
+          schema:
+            type: string
+            format: date-time
+        - name: until
+          in: query
+          description: 'Show events occurred before datetime (format : ISO 8601)'
+          schema:
+            type: string
+            format: date-time
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+      responses:
+        '200':
+          description: |-
+            Like said above, several types of events exist. The response structure depends to which larger domain they are tied to. You may choose between the various responses in the body through two dropdown menus. 
+
+            The first one located at the timeline object, and the second one, which may or may not appear depending on your choice on the first dropdown menu, is located below, at the data object.
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./store-timeline.model.oas2.yml#/components/schemas/TimelineEventCollectionHal
+              examples:
+                Timeline import event:
+                  value:
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      prev:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      next:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      first:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      last:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    total: 12
+                    limit: 2
+                    pages: 6
+                    page: 3
+                    count: 2
+                    _embedded:
+                      timeline:
+                        id: string
+                        name: feed.import
+                        storeId: 0
+                        action: 'start, finish, push, create, update...'
+                        occurredAt: '2019-08-24T14:15:22Z'
+                        data:
+                          - feedId: string
+                            feedType: string
+                            message: string
+                        _links:
+                          self:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                          store:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                Timeline export event:
+                  value:
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      prev:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      next:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      first:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      last:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    total: 12
+                    limit: 2
+                    pages: 6
+                    page: 3
+                    count: 2
+                    _embedded:
+                      timeline:
+                        id: string
+                        name: feed.import
+                        storeId: 0
+                        action: 'start, finish, push, create, update...'
+                        occurredAt: '2019-08-24T14:15:22Z'
+                        data:
+                          message: string
+                        _embedded:
+                          channel:
+                            id: 123
+                            name: amazon
+                            type: marketplace
+                            _links:
+                              image:
+                                href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                        _links:
+                          self:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                          store:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                Timeline rule event:
+                  value:
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      prev:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      next:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      first:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      last:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    total: 12
+                    limit: 2
+                    pages: 6
+                    page: 3
+                    count: 2
+                    _embedded:
+                      timeline:
+                        id: string
+                        name: feed.import
+                        storeId: 0
+                        action: 'start, finish, push, create, update...'
+                        occurredAt: '2019-08-24T14:15:22Z'
+                        data:
+                          - reference: string
+                            name: string
+                        _links:
+                          self:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                          store:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                Timeline order event:
+                  value:
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      prev:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      next:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      first:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      last:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                    total: 12
+                    limit: 2
+                    pages: 6
+                    page: 3
+                    count: 2
+                    _embedded:
+                      timeline:
+                        id: string
+                        name: feed.import
+                        storeId: 0
+                        action: 'start, finish, push, create, update...'
+                        occurredAt: '2019-08-24T14:15:22Z'
+                        data:
+                          - reference: string
+                        _links:
+                          self:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                          store:
+                            href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+      security:
+        - Token: []
+    head:
+      summary: Count Timeline Events
+      description: |-
+        ### Count the timeline events of your store
+
+        How many timeline events does my store have? 
+        You can call this endpoint to count the existing timeline events of your store.
+      operationId: v1.store-timeline-information.head
+      parameters:
+        - name: storeId
+          in: path
+          description: The store ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Informations are located in the headers returned
+          headers:
+            X-Last-Request-Timestamp:
+              description: Indicated when the last fetch query occurred
+              schema:
+                type: string
+                format: date-time
+            X-Last-Event-Timestamp:
+              description: Indicate the last event date
+              schema:
+                type: string
+                format: date-time
+            X-New-Events-Count:
+              description: Count the number of new events since last query
+              schema:
+                type: string
+          content:
+            application/hal+json:
+              schema:
+                type: object
+      security:
+        - Token: []
+components:
+  parameters:
+    storeId:
+      name: storeId
+      in: path
+      description: A store identifier you have access to.
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'
