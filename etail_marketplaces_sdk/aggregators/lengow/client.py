@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Optional
 
 import requests
@@ -57,13 +58,12 @@ class LengowClient(BaseAggregator):
         brand: Brand,
         marketplace_id: Optional[int] = None,
         marketplace_name: Optional[str] = None,
-        tax_rate=None,
+        tax_rate: Optional[Decimal] = None,
     ) -> None:
         super().__init__(credentials)
         self.brand = brand
         self.marketplace_id = marketplace_id
         self.marketplace_name = marketplace_name
-        from decimal import Decimal
         self.tax_rate = tax_rate if tax_rate is not None else Decimal("20")
 
     # ------------------------------------------------------------------

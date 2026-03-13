@@ -260,7 +260,32 @@ def map_order_from_orders_api(
     marketplace_id: Optional[int],
     brand: Brand,
 ) -> Optional[Order]:
-    """Map a single record from GET /v2/orders → canonical Order."""
+    """Map a single record from ``GET /v2/orders`` to a canonical :class:`Order`.
+
+    Unlike :func:`map_order` (which reads from ``/v2/shipments`` and only sees
+    ``CLOSED`` records), this function works with the full orders feed and
+    therefore reflects every status (``NEW``, ``IN_PROGRESS``, ``SHIPPED``,
+    ``CLOSED``, ``CANCELLED``, …).
+
+    All price fields are taken directly from the API response — no
+    back-calculation is needed because ``/v2/orders`` includes both excl- and
+    incl-VAT amounts and explicit per-line ``VatRate``.
+
+    Args:
+        order:          Raw order dict from the ``Content`` array of the
+                        ``GET /v2/orders`` response.
+        aggregator_id:  Numeric ID of the ChannelEngine aggregator record in
+                        your data store (``ChannelEngineClient.aggregator_id``
+                        is ``6`` by default).
+        marketplace_id: Static marketplace ID to attach to every order.  Pass
+                        ``None`` to fall back to ``0``.
+        brand:          :class:`~etail_marketplaces_sdk.models.brand.Brand`
+                        instance associated with this tenant.
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.order.Order`, or
+        ``None`` if the record has no ``ChannelOrderNo``.
+    """
     channel_order_no = order.get("ChannelOrderNo", "")
     if not channel_order_no:
         return None
@@ -321,10 +346,36 @@ def map_invoice_from_orders_api(
     brand: Brand,
     tax_rate: Decimal = Decimal("20"),
 ) -> Optional[Invoice]:
-    """Map a single record from GET /v2/orders → canonical Invoice.
+    """Map a single record from ``GET /v2/orders`` to a canonical :class:`Invoice`.
 
-    Returns None for orders that have not yet been shipped (status not in
-    ``_SHIPPED_STATUSES``) or that carry no line items.
+    Unlike :func:`map_invoice` (which uses ``/v2/shipments`` and cannot
+    populate address fields), this function builds a fully-populated invoice
+    including billing and shipping addresses from the order's address blocks.
+
+    Invoice generation is intentionally restricted to orders whose ``Status``
+    is ``SHIPPED`` or ``CLOSED``.  All other statuses return ``None`` so that
+    callers do not need to filter the result list themselves.
+
+    Subtotals are computed from the per-line ``LineTotalExclVat`` values.
+    ``TotalInclVat`` from the order header is used as ``total_amount`` so the
+    invoice always matches the amount the customer actually paid.
+
+    Args:
+        order:          Raw order dict from the ``Content`` array of the
+                        ``GET /v2/orders`` response.
+        aggregator_id:  Numeric ID of the ChannelEngine aggregator record.
+        marketplace_id: Static marketplace ID; falls back to ``0`` if ``None``.
+        brand:          :class:`~etail_marketplaces_sdk.models.brand.Brand`
+                        instance used to populate logo, footer, and company
+                        metadata on the invoice.
+        tax_rate:       Default VAT rate (percentage, e.g. ``Decimal("20")``).
+                        Used as a fallback when a line's own ``VatRate`` is
+                        zero or absent.
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.invoice.Invoice`,
+        or ``None`` when the order status is not ``SHIPPED``/``CLOSED``, or
+        when the order carries no shippable line items.
     """
     channel_order_no = order.get("ChannelOrderNo", "")
     if not channel_order_no:

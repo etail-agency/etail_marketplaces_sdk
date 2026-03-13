@@ -58,34 +58,30 @@ pip install "etail-marketplaces-sdk[all]"
 ## Quick Start
 
 ```python
-from etail_marketplaces_sdk import (
-    LengowClient,
-    LengowCredentials,
-    SupabaseSinkConnector,
-)
-from datetime import datetime, timedelta
+from decimal import Decimal
+from etail_marketplaces_sdk.aggregators.channelengine.client import ChannelEngineClient
+from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
+from etail_marketplaces_sdk.models.brand import Brand
 
-# 1. Credentials
-creds = LengowCredentials(
-    access_token="your_access_token",
-    secret="your_secret",
-)
+brand = Brand(id=9, name="Villeroy & Boch", slug="villeroy_boch", initials="VNB",
+              logo_url="", company_info="", invoice_footer_text="")
 
-# 2. Client
-client = LengowClient(credentials=creds, aggregator_id=3)
-
-# 3. Sink
-sink = SupabaseSinkConnector(
-    url="https://your-project.supabase.co",
-    key="your-service-role-key",
+# orders_api=True → use /v2/orders (full address data, all statuses)
+# orders_api=False (default) → use /v2/shipments (CLOSED only)
+client = ChannelEngineClient(
+    credentials=ApiKeyCredentials(api_key="<api-key>"),
+    base_url="https://<tenant>.channelengine.net/api",
+    brand=brand,
+    marketplace_id=42,
+    tax_rate=Decimal("20"),
+    orders_api=True,
 )
 
-# 4. Fetch & write
-orders = client.fetch_orders(since=datetime.utcnow() - timedelta(days=7))
-result = sink.write_orders(orders)
-
-print(f"Processed {result.processed_count} orders")
+orders   = client.fetch_orders(days_ago=30)    # all statuses
+invoices = client.fetch_invoices(days_ago=30)  # SHIPPED / CLOSED only, with full address
 ```
+
+See [Getting Started](docs/getting-started.md) for Lengow and ShoppingFeed examples.
 
 ---
 
@@ -101,6 +97,15 @@ Credentials → Client (fetch) → Mapper (normalise) → Canonical Model → Si
 - **Mappers** convert raw platform payloads to canonical models. Each mapper is the only file that changes when a platform spec changes.
 - **Canonical Models** are plain Python `@dataclass` objects with a `raw` field for full traceability.
 - **Sinks** write data with upsert semantics so pipelines can be safely re-run.
+
+### ChannelEngine — dual endpoint support
+
+ChannelEngine exposes two data sources.  Pass `orders_api=True` to the client to switch:
+
+| `orders_api` | Endpoint | Statuses | Address |
+|---|---|---|---|
+| `False` *(default)* | `GET /v2/shipments` | `CLOSED` only | — |
+| `True` | `GET /v2/orders` | All | Full billing & shipping |
 
 ---
 
