@@ -1,0 +1,1268 @@
+openapi: 3.1.0
+info:
+  title: Store Order API
+  description: |-
+    ## Information on orders
+
+    You can either choose to handle your orders from your CMS, or to handle them with the Shopping Feed Order management system. In any case, the order is originally placed on the marketplace by the buyer. Once the order exists on the marketplace, it is retrieved or pushed on Shopping Feed at regular intervals, so that it is available on the application, and so that it can be imported into your CMS.
+
+    The order workflow can be followed and acted upon either on Shopping Feed, or on your CMS (every action which is done on your CMS will be reflected on Shopping Feed).
+
+    Please know that as the operations on orders are performed asynchronously, the status of an order on which an operation has been performed will not change immediately. The status resulting from a successful operation will only appear once the marketplace has confirmed the operation's success.
+    If you perform an operation which has already been performed (in which case, the operation is irrelevant), you will not receive an error.
+
+
+    ![Order status diagram](https://assets.shopping-feed.com/orders-diagram.jpg)
+
+    ### Order Acknowledgement
+
+    When you acknowledge an order it means that you to let Shoppingfeed know that the order has been imported to your system (which is usually your CMS).
+
+    Most users import an order to their system right after they have accepted it (which means its status is *waiting_shipment*) and they perform the acknowledge operation at the same time.
+
+    Please bear in mind that this operation has been created to facilitate your order workflow when handling orders on your system.
+    You are free to perform this operation at any other time if needed and you may also choose not to perform this operation at all. 
+
+    For more details on order acknowledgement, please consult directly the endpoints [Acknowledge an Order](store-order.oas2.yml/paths/~1v1~1store~1{storeId}~1order~1acknowledge) and [Unacknowledge an Order](store-order.oas2.yml/paths/~1v1~1store~1{storeId}~1order~1unacknowledge).
+
+    ## Error types
+
+    | name        | description                                                                      |
+    |-------------|----------------------------------------------------------------------------------|
+    | operation   | An error occurred while trying to update an order                                |
+    | ship        | An error occurred when Shopping-Feed tried to push an update to the marketplace. |
+
+    ## Status
+
+    | name                     | description                                                                 |
+    |--------------------------|-----------------------------------------------------------------------------|
+    | created                  | Order has been created on the marketplace                                   |
+    | waiting_store_acceptance | Store must accept order                                                     |
+    | refused                  | The seller refused this order                                               |
+    | waiting_shipment         | Order has been accepted by store and is waiting to be shipped               |
+    | shipped                  | Order has been flagged as shipped on the marketplace                        |
+    | cancelled                | The customer cancelled the order, or the order has been cancelled by seller |
+    | refunded                 | The customer has been refunded by seller                                    |
+    | partially_refunded       | The customer has been partially refunded by seller                          |
+    | partially_shipped        | Order has been flagged as partially shipped on the marketplace              |
+
+    ## Additional fields
+
+    The View (and List) operation may contain additional fields for orders and/or order items. The additional fields' data comes directly from the marketplaces, without any Shoppingfeed standardization.
+
+    *New data may be added or removed without prior notice.*
+
+    #### List of additional fields that may be returned at the order level
+
+    Please note that all order additional fields from Mirakl marketplaces are imported in `order.items.additionalFields` and/or `order.additionalFields`. Only the most frequent ones are listed in the tables below.
+
+    | Channel name | field name and sample value | description                               |
+    |--------------|-----------------------------|-------------------------------------------|
+    | General use  | buyer_identification_number (81966774200)  | fiscal buyer identification number, mostly used in Spain and Italy |
+    | Amazon       | shipping_tax (1.12)         | tax amount on shipping fees |
+    | CDiscount    | CorporationCode (CDSB2C)    | indicates order's source : Cdiscount or another channel |
+    | eBay         | transaction_id (123456789)  | indicates eBay's transaction identifier|
+    | Mirakl       | channel_code (FR)           | indicates marketplace channel where order is from |
+    | Mirakl       | shipping_type_code (1/STD)  | indicates marketplace shipping type used for order|
+    | Mirakl       | shipping_pudo_id (10568)    | indicates pick up point identifier |
+    | Zalando      | order_id (cc78ed4-5e6d-45)  | Zalando's internal order identifier |
+    | Zalando      | customer_number (1234567)   | buyer identifier from Zalando |
+    | Zalando      | return_tracking (12345678)  | return tracking sent by seller once order is shipped |
+
+
+    #### List of additional fields that may be returned at the order item level
+
+    | Channel name | field name (and sample value) | description                       |
+    |--------------|-------------------------------|-----------------------------------|
+    | Conforama    | reprise-ancien (false)        | if old item can be recollected by delivery company |
+    | Darty        | recollected-quantity (0)      | if old item can be recollected by delivery company |
+    | Manomano     | taxrate (10.16)               | Tax rate applied to item of order |
+    | Zalando      | article_id (IM682H01B-K11)    | Zalando article identifier useful for shipping templates |
+
+    ## Specific order operations
+    While most order operations are possible on all channels, some others, which fit more specific use cases, are only supported on a limited number of channels.
+
+    | Channel name                  | Refund           | Partial refund   | Partial shipment | Cancel           | Documents Upload |
+    |-------------------------------|------------------|------------------|------------------|------------------|------------------|
+    | **Mirakl-powered channels**   |*Supported*       |*Supported*       |*Supported*       |*Supported*       |*Supported*       |
+    | Amazon                        | /                | /                | /                |*Supported*       | /                |
+    | Backmarket                    | /                | /                | /                | /                |*Supported*       |
+    | Bol                           | /                | /                |*Supported*       |*Supported*       |*Supported*       |
+    | Cdiscount                     |*Supported*       |*Supported*       | /                |*Supported*       | /                |
+    | Colizey                       | /                | /                |*Supported*       | /                |*Supported*       |
+    | eBay                          |*Supported*       | /                | /                |*Supported*       | /                |
+    | Fnac                          | /                | /                | /                | /                |*Supported*       |
+    | Joom                          | /                | /                | /                |*Supported*       | /                |
+    | ManoMano                      | /                | /                |*Supported*       | /                | /                |
+    | Metromarket                   | /                | /                |*Supported*       |*Supported*       |*Supported*       |
+    | Miinto                        | /                | /                |*Supported*       |*Supported*       |*Supported*       |
+    | Miravia                       |*Supported*       | /                |*Supported*       | /                | /                |
+    | Rakuten                       | /                | /                | /                |*Supported*       | /                |
+    | Real                          |*Supported*       |*Supported*       |*Supported*       |*Supported*       |*Supported*       |
+    | Refurbed                      |*Supported*       |*Supported*       |*Supported*       |*Supported*       | /                |
+    | TikTokShop                    |*Supported*       |*Supported*       |*Supported*       |*Supported*       | /                |
+    | Veepee/VeepeeGroup            |*Supported*       |*Supported*       | /                | /                |*Supported*       |
+    | Walmart                       | /                | /                | /                |*Supported*       | /                |
+    | Wayfair                       | /                | /                | /                | /                | /                |
+    | Zalando                       |*Supported*       |*Supported*       | /                |*Supported*       | /                |
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+tags:
+  - name: ''
+  - name: Order
+  - name: store
+  - name: Export
+  - name: Tag
+  - name: Operation
+paths:
+  '/v1/store/{storeId}/order':
+    get:
+      tags:
+        - Order
+      summary: List Orders
+      description: |-
+        ### List the existing orders of your store
+
+        This endpoint is quite the catch if you want to use our API mostly for order management. This is the endpoint which will allow you to get all the existing orders of your *store*, how about that?
+
+        Check out [this page](https://developer.shopping-feed.com/order-api) for more information regarding the workflow of orders in Shoppingfeed.
+
+        You will also be able to use several filters that can narrow down the selection of orders in the response:
+        - If you want to get all the existing orders for a specific *channel*, use the *channel* query.
+        - If you want to find an order, but you only have the reference of the order as provided by the channel, use the *reference* query as to find the order.
+        - If you only have the reference which exists on your store, and you want to find the corresponding order, use the *storeReference* query.
+        - You can also fetch specific orders according to a time period, by using the queries *since* and *until*.
+        - You can fetch all your orders which have a specific status by using the *status* filter.
+        - etc.
+        These queries will prove to be quite useful in your day-to-day order management.
+
+        When the API returns an answer, the first property which you will see is the *ID*. This is the internal Shopping Feed *ID* for the order, which will be followed by the channel reference and the store reference as well. The API will also let you know whether or not the order is a *test order* or a real one. 
+      operationId: v1.store-order-collection.get
+      parameters:
+        - name: storeId
+          in: path
+          description: The store ID.
+          required: true
+          schema:
+            type: integer
+        - name: channelId
+          in: query
+          description: The ID of the channel.
+          schema:
+            type: integer
+        - name: reference
+          in: query
+          description: The reference of the order on the channel.
+          schema:
+            type: string
+        - name: storeReference
+          in: query
+          description: Internal reference for the order on the store platform.
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: 'Filter orders created on the channel from a specific date and time. Uses ISO 8601 format, e.g. 2017-03-07T13:26:33'
+          schema:
+            type: string
+        - name: until
+          in: query
+          description: 'Filter orders created on the channel up to a specific date and time. Uses ISO 8601 format, e.g. 2017-03-07T13:26:33'
+          schema:
+            type: string
+        - name: carrier
+          in: query
+          description: The name of a carrier.
+          schema:
+            type: string
+        - name: tagName
+          in: query
+          description: The name of the tag associated with the order.
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'The Shopping Feed status of the order, multiples comma separated values.'
+          schema:
+            type: string
+            enum:
+              - created
+              - waiting_store_acceptance
+              - refused
+              - waiting_shipment
+              - shipped
+              - cancelled
+              - refunded
+              - partially_refunded
+              - partially_shipped
+        - name: acknowledgment
+          in: query
+          description: Filter on orders acknowledgment on store platform.
+          schema:
+            type: string
+            enum:
+              - acknowledged
+              - unacknowledged
+        - name: error
+          in: query
+          description: 'Filter orders on a specific error type, multiples comma separated values.'
+          schema:
+            type: string
+            enum:
+              - ship
+              - acknowledge
+        - name: search
+          in: query
+          description: This filter will return any order where the marketplace reference or the address informations (lastname and firstname) match with the keyword.
+          schema:
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - name: fulfilledBy
+          in: query
+          description: The person or company who has to fulfill the order
+          schema:
+            type: string
+            enum:
+              - store
+              - channel
+              - undefined
+        - name: isTest
+          in: query
+          description: Return only test orders when true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/OrderCollectionHal
+    post:
+      tags:
+        - Order
+      summary: Create a Test Order
+      description: |-
+        ### Create a test order so that you can check the order management workflow
+
+        Once you have set up your marketplaces, you are going to want to test the *order* workflow. We have quite the tool for this: the creation of a *test order*. It will be quite useful for you to create a custom test order that will allow you to test the workflow without jeopardizing an actual customer order.
+
+        In order to do so, you will first need to pass your *Store ID*, so that Shopping Feed knows on which store this new test order should be created. Then, in the body of the request, you will need to specify the different elements of the order you wish to create:
+        - the *items* in your order (and for each, a reference, quantity and price)
+        - the *channel* on which this order should have supposedly been placed
+        - the *reference* of the order, so that you can spot it easily amongst your other actual orders
+        - the *payment* (the shipping amount, the currency used, and the payment method)
+        - the *shipment* information (such as carrier and tracking number)
+        - the *shippingAddress* and *billingAddress* information
+
+        When the request is made correctly, then the API will be able to create a test order, which will then appear amongst your other actual orders.
+
+        *Warning:*
+        - If you add *shipment* information to your request, the order will be created with a *shipped*  status, which will allow you to test the shipping or refunding workflows
+        - If you do not add this information to your request, the order will be created with a *created*  status (or *accepted* ), which will allow you to test the entire workflow, starting with validation and acknowledgement.
+
+
+        *Disclaimer:*
+        - Partial operations are not fully supported on test orders. 
+        - When possible, end-to-end testing should always be considered and be conducted using an order created for this purpose on the targeted channel.
+      operationId: v1.store-order.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order
+              properties:
+                order:
+                  type: object
+                  required:
+                    - items
+                    - channelId
+                  properties:
+                    items:
+                      type: array
+                      description: Products to add to the test order.
+                      items:
+                        type: object
+                        properties:
+                          reference:
+                            type: string
+                          quantity:
+                            type: integer
+                          price:
+                            type: number
+                    channelId:
+                      type: integer
+                      description: The channel ID to create a test order for.
+                      example: 66
+                    reference:
+                      type: string
+                      description: 'The order reference, if non provided will be field with this template "TEST-[STORE ID]-[DATE TIME]"'
+                      example: abc123
+                    payment:
+                      type: object
+                      required:
+                        - shippingAmount
+                        - currency
+                        - method
+                      properties:
+                        shippingAmount:
+                          type: number
+                          description: The shipping cost for the test order.
+                          example: 5.9
+                        currency:
+                          type: string
+                          description: The currency used for the order.
+                          example: EUR
+                        method:
+                          type: string
+                          description: Payment method used.
+                          example: abc
+                    shipment:
+                      type: object
+                      required:
+                        - carrier
+                        - trackingNumber
+                      properties:
+                        carrier:
+                          type: string
+                          description: 'The carrier for the test order, by default will take the channel''s first carrier found.'
+                          example: UPS
+                        trackingNumber:
+                          type: string
+                          description: A delivery relay number.
+                          example: RYB09832
+                    shippingAddress:
+                      $ref: ./store-order.model.oas2.yml#/components/schemas/ShippingAddressNotRequired
+                      x-stoplight:
+                        id: b8jeqz2jqvb0i
+                    billingAddress:
+                      $ref: ./store-order.model.oas2.yml#/components/schemas/BillingAddressNotRequired
+                      x-stoplight:
+                        id: hk6f8r9u1spcv
+          multipart/form-data:
+            schema:
+              required:
+                - order
+              type: object
+              properties:
+                order:
+                  required:
+                    - channelId
+                    - items
+                  type: object
+                  properties:
+                    items:
+                      type: array
+                      description: Products to add to the test order.
+                      items:
+                        type: object
+                        properties:
+                          reference:
+                            type: string
+                          quantity:
+                            type: integer
+                          price:
+                            type: number
+                    channelId:
+                      type: integer
+                      description: The channel ID to create a test order for.
+                      example: 66
+                    reference:
+                      type: string
+                      description: 'The order reference, if non provided will be field with this template "TEST-[STORE ID]-[DATE TIME]"'
+                      example: abc123
+                    payment:
+                      required:
+                        - currency
+                        - method
+                        - shippingAmount
+                      type: object
+                      properties:
+                        shippingAmount:
+                          type: number
+                          description: The shipping cost for the test order.
+                          example: 5.9
+                        currency:
+                          type: string
+                          description: The currency used for the order.
+                          example: EUR
+                        method:
+                          type: string
+                          description: Payment method used.
+                          example: abc
+                    shipment:
+                      required:
+                        - carrier
+                        - trackingNumber
+                      type: object
+                      properties:
+                        carrier:
+                          type: string
+                          description: 'The carrier for the test order, by default will take the channel''s first carrier found.'
+                          example: UPS
+                        trackingNumber:
+                          type: string
+                          description: A delivery relay number.
+                          example: RYB09832
+        required: false
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/OrderHal
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/{orderId}':
+    get:
+      tags:
+        - Order
+      summary: View an Order
+      description: |-
+        ### Fetch the detailed content and information of a specific order
+
+        This is the endpoint which you will have to use when you are targeting a specific order; in order to fetch this order, you will need to pass its *ID*, and your *store ID*. This endpoint contains a lot more elements than the [List Orders](https://developer.shopping-feed.com/order-api/order/v1store-order-collectionget) one.
+
+        This specific endpoint contains the potential additional fields which can be part of your order.
+      operationId: v1.store-order.fetch
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/orderId'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/OrderHal
+              example:
+                id: 0
+                reference: 1568-538
+                storeReference: 1684A87G
+                isTest: false
+                createdAt: '2017-08-03T22:25:11+02:00'
+                updatedAt: '2017-08-05T22:25:11+02:00'
+                acknowledgedAt: '2017-08-05T22:25:11+02:00'
+                status: accepted
+                anonymized: true
+                commission: 2.4
+                shippingAddress:
+                  firstName: John
+                  lastName: Doe
+                  company: Shopping-Feed
+                  street: 12 Lafayette street
+                  street2: Appartment 5
+                  postalCode: '75002'
+                  city: Paris
+                  country: FR
+                  other: 'Entry code : 1234A'
+                  phone: '+33144649021'
+                  mobilePhone: '33644649021'
+                  province: ''
+                  email: contact@shopping-feed.com
+                billingAddress:
+                  firstName: John
+                  lastName: Doe
+                  company: Shopping-Feed
+                  street: 12 Lafayette street
+                  street2: Appartment 5
+                  postalCode: '75002'
+                  city: Paris
+                  country: FR
+                  other: 'Entry code : 1234A'
+                  phone: '+33144649021'
+                  mobilePhone: '33644649021'
+                  province: ''
+                  email: contact@shopping-feed.com
+                payment:
+                  shippingAmount: 4
+                  productAmount: 150.24
+                  totalAmount: 6.24
+                  currency: EUR
+                  method: Paypal
+                shipment:
+                  carrier: Std FR Dom
+                  trackingNumber: REF635DFF-ERG4
+                  trackingLink: 'https://tracking-url'
+                  returnInfo:
+                    carrier: null
+                    trackingNumber: null
+                additionalFields: {}
+                latestShipDate: '2022-11-21T23:05:10+02:00'
+                errors:
+                  - type: ship
+                    message: Unable to update order.
+                    occurredAt: string
+                _links:
+                  self:
+                    href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                  store:
+                    href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                _embedded:
+                  channel:
+                    id: 0
+                    name: string
+                    _links:
+                      self:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                      image:
+                        href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                  tag:
+                    - id: 0
+                      name: string
+                      hexColor: string
+                      _links:
+                        self:
+                          href: 'https://app.shopping-feed.com/images/logos/Amazon.png'
+                items:
+                  - channelReference: A00001
+                    reference: ER548U
+                    name: ASPIRO 2000
+                    image: 'http://url.com/image.png'
+                    status: shipped
+                    quantity: 1
+                    price: 0
+                    commission: 2.4
+                    taxAmount: 0
+                    ecotaxAmount: 0
+                    additionalFields: {}
+                itemsReferencesAliases: {}
+                fulfilledBy: channel
+    delete:
+      tags:
+        - Order
+      summary: Delete a Test Order
+      description: |-
+        ### Delete a test order
+
+        Test orders are automatically removed after a 30-day period. This endpoint allows to manually remove a test order without waiting for that deadline.
+      operationId: v1.store-order.delete
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/orderId'
+      responses:
+        '204':
+          description: No Content
+          content: {}
+    patch:
+      tags:
+        - Order
+      summary: Update an Order
+      description: |-
+        ### Make changes to an order's billing and/or shipping addresses
+
+        When managing your orders, you might want to add, correct, or delete elements of the addresses. This is what this endpoint is for, as it allows you to modify elements on both *shipping* and *billing addresses*, so as to make sure that the addresses are correct.
+      operationId: v1.store-order.patch
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/orderId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order
+              properties:
+                order:
+                  type: object
+                  properties:
+                    shippingAddress:
+                      $ref: ./store-order.model.oas2.yml#/components/schemas/AddressEdited
+                    billingAddress:
+                      $ref: ./store-order.model.oas2.yml#/components/schemas/AddressEdited
+                    itemsReferencesAliases:
+                      type: object
+                      description: Hash object with item's reference to replace as key and edited reference as value.
+        required: false
+      responses:
+        '204':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: ./common.oas2.yml#/components/responses/404
+        '409':
+          $ref: ./common.oas2.yml#/components/responses/409
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/{orderId}/document':
+    get:
+      tags:
+        - Order
+      summary: List Order Documents
+      description: "### List Order Documents\r\n\r\nThis endpoint allows you to list one or several documents for specific orders - such as the order's invoice for example.\r\n\r\nThese documents are deleted 30 days after their upload."
+      operationId: v1.store-order-document-collection.get
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/orderId'
+        - schema:
+            type: string
+          in: header
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/OrderDocumentCollectionHal
+      x-internal: false
+  '/v1/store/{storeId}/order/acknowledge':
+    post:
+      tags:
+        - Order
+      summary: Acknowledge an Order
+      description: |-
+        ### Acknowledge the reception of an order
+
+
+        Acknowledging an order means acknowledging its reception on the merchant's store platform. When an order is akcnowledged, then it means that this order won't be part of the next batch of orders to be imported on the merchant's store platform.
+
+        *Please be advised of the following information*
+          - The use of the reference and the channel name have been deprecated, you should use the order ID instead (although the combination of the channel name and the order reference still works).
+          - This is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+
+        *How to use the error status*
+          - The *error* status should only be used when you have not been able to fetch the order data. 
+          - It's best to send additional information in the *message* property alongside an error status. This message will then be returned in the *errors* property when fetching the order. 
+          - When you send the error status, a ticket will be created but the order will **not be acknowledged** in your SF store.
+      operationId: v1.store-order-operation-acknowledge.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/AcknowledgeOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/unacknowledge':
+    post:
+      tags:
+        - Order
+      summary: Unacknowledge an Order
+      description: |-
+        ### Unacknowledge the reception of an order
+
+        Unacknowledging an order means canceling its acknowledgement, letting the system know that this order has not been imported yet on the merchant's store platform.
+
+        Please note that the use of the reference and the channel name have been deprecated, you should use the order ID instead (although the combination of the channel name and the order reference still works).
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-unacknowledge.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/UnacknowledgeOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/accept':
+    post:
+      tags:
+        - Order
+      summary: Accept an Order
+      description: |-
+        ### Accept an order
+
+        This operation aims at letting the marketplace know that you have accepted the order, and that you will fulfill it.
+        Once an order is accepted, the order will switch to a *Waiting_shipment* status.
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-accept.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/AcceptOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/deliver':
+    post:
+      tags:
+        - Order
+      summary: Deliver an Order
+      description: |-
+        ### Deliver an order
+
+        This operation aims at letting the marketplace know the order have been delivered.
+        Once an order is delivered, the order remains in a *shipped* status.
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-deliver.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/DeliverOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/refuse':
+    post:
+      tags:
+        - Order
+      summary: Refuse an Order
+      description: |-
+        ### Refuse an order
+
+        This operation aims at letting the marketplace know that you have refused the order, and that you will not fulfill it. 
+        Once an order is refused, the order will switch to a *Refused* status.
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-refuse
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/RefuseOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/cancel':
+    post:
+      tags:
+        - Order
+      summary: Cancel an Order
+      description: |-
+        ### Cancel an order
+
+        This operation aims at letting the marketplace know that you have canceled the order. This operation can only be done before the order is shipped. Once the order is shipped, it can no longer be canceled.
+        Once an order is canceled, the order will switch to a *Canceled* status.
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-cancel.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/CancelOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/refund':
+    post:
+      tags:
+        - Order
+      summary: Refund an Order
+      description: |-
+        ### Refund an order
+
+        This operation aims at letting the marketplace know that you have refunded the order. Orders can be refunded at order level and at orderline level (partial refund).
+         
+        Be aware of the fact that only some marketplaces allow this operation. You may find the [list here](https://developer.shopping-feed.com/api/fae0997e4f525-store-order-api#specific-order-operations).
+
+        Once an order is refunded, the order will switch to a *Refunded* or *Partially Refunded* status , according to how the operation was specified.
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-refund.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/RefundOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/ship':
+    post:
+      tags:
+        - Order
+      summary: Ship an Order
+      description: |-
+        ### Ship an Order
+
+        This operation aims at letting the marketplace know that you have shipped the order. You can add relevant shipping information to your order, such as: carrier, tracking link, and tracking number.
+        Once this operation is completed, the order will switch to a *Shipped* status.
+
+        This endpoint allows you to perform a partial shipment as well but only a limited number of marketplaces support this operation. You may find the [list here](https://developer.shopping-feed.com/api/fae0997e4f525-store-order-api#specific-order-operations).
+
+
+        Please note that this is an asynchronous operation, meaning that you will not see the result of your action right away. This operation will create a ticket, which you can access via a specific endpoint, as to check on the progress of your operation (see the [Ticket API](https://developer.shopping-feed.com/api/YXBpOjI1MTMyNzQ0-ticket-api)).
+      operationId: v1.store-order-operation-ship.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    $ref: ./store-order.model.oas2.yml#/components/schemas/ShipOperation
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/{orderId}/shipment':
+    get:
+      tags:
+        - Order
+      summary: List Shipments
+      description: |-
+        ### List the existing shipment(s) of an order
+
+        A Shipment is created every time a Ship operation for an order is performed. It contains the data sent through this operation as well as the related metadata.
+        This endpoint allows you to retrieve the shipment(s) linked to a specific order.
+      operationId: v1.store-order-operation.shipment
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/orderId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/ShipmentCollectionHal
+  '/v1/store/{storeId}/order/upload-documents':
+    post:
+      tags:
+        - Order
+      summary: Upload Order Documents
+      description: |-
+        ### Upload Order Documents
+
+        This endpoint allows you to upload one or several documents to specific orders - such as the order's invoice for example. Up to 20 files can be sent in a single call.
+
+        Only a limited number of marketplaces support this operation. You may find the [list here](https://developer.shopping-feed.com/api/fae0997e4f525-store-order-api#specific-order-operations).
+
+        #### How to use this endpoint
+
+        The body uses the form-data type. It contains 2 keys:
+        - **files[]** => This key is a file type and is used to attached your file's uri as value
+          -- *Please note the only pdf file format  currently allowed is pdf and that files must have local paths.*
+        - **body** => This key should follow the schema below
+          -- *Please note the only document type currently allowed is "invoice".*
+
+        ```json
+        {
+            "order": [
+                {
+                    "id": integer,             // the order id
+                    "documents": [
+                        {
+                            "type": "string"   // the type of document uploaded
+                        }
+                    ]
+                }
+            ]
+        }
+        ```
+
+        Curl query example:
+        ```text
+        curl --location '{{root}}/v1/store/{{storeId}}/order/upload-documents' \
+        --header 'Accept: */*' \
+        --header 'Content-Type: multipart/form-data' \
+        --header 'Authorization: Bearer {{token}}' \
+        --form 'files[]=@"/path/of/your/file.pdf"' \
+        --form 'body="{
+            \"order\": [
+                {
+                    \"id\": 123456789,
+                    \"documents\": [
+                        {
+                            \"type\": \"invoice\"
+                        }
+                    ]
+                }
+            ]
+        }"'
+           
+        ```
+
+        File requirements: 
+
+        - It's possible to provide several documents for one or several orders in a single call. To do so, you need to attached your files to the key '**files[]**' in the order that you defined in the body property.
+        - Each file must not exceed 2 MB
+
+        **Important Note**
+
+        *This endpoint will return a 202 if the body is in an expected format and the file requirements above are fulfilled. 
+        To know whether the operation is actually successful, you will need to call the [List Order Documents](https://developer.shopping-feed.com/api/716d708be0c83-list-order-documents)*
+      operationId: v1.store-order-operation-upload-documents.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - name: Content-Type
+          in: header
+          description: multipart/form-data
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+                - body
+                - 'files[]'
+              type: object
+              properties:
+                'files[]':
+                  type: string
+                  description: File(s) to upload. Max 20
+                  format: binary
+                body:
+                  type: string
+                  description: Please refer to the description above
+        required: true
+      responses:
+        '202':
+          $ref: '#/components/responses/v1.store-order-operation'
+        '413':
+          description: Request Entity Too Large. Files over 2 MB are not supported
+          content:
+            application/json:
+              schema:
+                type: object
+  '/v1/store/{storeId}/order/tag':
+    get:
+      tags:
+        - Tag
+      summary: List Tags
+      description: |-
+        ### List the existing tags of your store
+
+        In order to manage your orders, you can *tag* your orders. These tags allow you to pin a relevant information to your order, in order to facilitate your internal management.
+        This endpoint will allow you to list all the existing tags of your store.
+      operationId: v1.store-order-tag-collection.get
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/TagCollectionHal
+    post:
+      tags:
+        - Tag
+      summary: Create a Tag
+      description: |-
+        ### Create a tag in order to manage your orders.
+
+        In order to manage your orders easily using the tags, you will need to create these tags. This is what this endpoint is for.
+
+        To create a new tag, call this endpoint, passing the name you wish your tag to have and its color. Once it is created, the tag can be associated with an order.
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+                - tag
+              type: object
+              properties:
+                tag:
+                  $ref: ./store-order.model.oas2.yml#/components/schemas/TagAttribute
+        required: false
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./store-order.model.oas2.yml#/components/schemas/TagHal
+      x-codegen-request-body-name: body
+  '/v1/store/{storeId}/order/tag/{tagId}/link':
+    post:
+      tags:
+        - Tag
+      summary: Tag an Order
+      description: |-
+        ### Associate one or several order(s) to a specific tag
+
+        This endpoint allows you to create a *link* (or *association*) between an existing tag and one or several order(s). The association is structured so that you associate an order to a tag. 
+        Some orders in your request can be ignored if you pass an order which does not exist, or if you pass an order (or several) which is(are) already associated to the tag.
+
+        The API will return the relevant tags with their newly associated orders.
+      operationId: v1.store-order-tag-link.post
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/tagId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+                - order
+              type: object
+              properties:
+                order:
+                  type: array
+                  description: An order id list to link with tag.
+                  items:
+                    type: integer
+        required: false
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                required:
+                  - _embedded
+                  - count
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  _embedded:
+                    required:
+                      - link
+                    type: object
+                    properties:
+                      link:
+                        type: array
+                        items:
+                          $ref: ./store-order.model.oas2.yml#/components/schemas/TagLinkHal
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - Tag
+      summary: Untag an order
+      description: |-
+        Remove links between an existing tag and an existing order.
+
+        Some order of the list can be ignored and no error will be raised :
+        - When given order does not exist
+        - When asking to remove an order not linked to given tag
+      operationId: v1.store-order-tag-link.delete
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/tagId'
+        - name: order
+          in: query
+          description: 'List of order id to unlink (comma separated values). Ex: ''111,222'''
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+  '/v1/store/{storeId}/order/tag/{tagId}':
+    put:
+      tags:
+        - Tag
+      summary: Update a Tag
+      description: |-
+        ### Make changes to an existing tag
+
+        If you wish to organise your tags, you can update their names or colors thanks to this endpoint.
+      operationId: v1.store-order-tag.put
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/tagId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag:
+                  $ref: ./store-order.model.oas2.yml#/components/schemas/TagAttribute
+        required: false
+      responses:
+        '204':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - Tag
+      summary: Delete tag
+      description: |-
+        This endpoint removes an existing tag.
+        Be careful though, removing an existing tag will also remove all the links that might exist  between this tag and orders. 
+      operationId: v1.store-order-tag.delete
+      parameters:
+        - $ref: '#/components/parameters/storeId'
+        - $ref: '#/components/parameters/tagId'
+      responses:
+        '204':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  responses:
+    v1.store-order-operation:
+      description: ''
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ./ticket.model.oas2.yml#/components/schemas/TicketLink
+              - type: object
+                properties:
+                  report:
+                    type: array
+                    description: Only returned if orders in this request have been ignored. It contains a list of all affected orders along with the reason for which they've been ignored. Orders identifiers are returned the same way they've been originally queried (either `id` or `channelName` and `reference`).
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          x-nullable: true
+                        channelName:
+                          type: string
+                          x-nullable: true
+                        reference:
+                          type: string
+                          x-nullable: true
+                        state:
+                          type: string
+                          enum:
+                            - ignored
+                        message:
+                          type: string
+                      required:
+                        - id
+                        - channelName
+                        - reference
+                        - state
+                        - message
+            type: object
+  parameters:
+    storeId:
+      name: storeId
+      in: path
+      description: The store ID.
+      required: true
+      schema:
+        type: integer
+    orderId:
+      name: orderId
+      in: path
+      description: The order ID.
+      required: true
+      schema:
+        type: integer
+    tagId:
+      name: tagId
+      in: path
+      description: The tag ID.
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

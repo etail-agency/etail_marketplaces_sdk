@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: Channel API
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - token: []
+tags:
+  - name: Category
+  - name: Mirakl
+  - name: Permission
+  - name: Taxonomy
+paths:
+  /v1/channel:
+    get:
+      summary: List Channels
+      description: |-
+        ### List the channels available on Shopping Feed
+
+        This endpoint provides a list of all channels, and for each of them a lot of relevant information, such as the type of the channel, the countries for which it is available, etc.
+
+        If you are looking for one in particular, or a specific selection, you have a number of filters for this resource which are available so that you can narrow your results down to the most relevant candidates: *name, type, state, country* and *segment*.
+      operationId: v1.channel-collection.fetch
+      parameters:
+        - name: name
+          in: query
+          description: The exact channel name. You may use the wildcard * to find channels more easily.
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: The channel type. You can provide a comma separated list to search several types at once
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: The channel state. You can provide a comma separated list to search several states at once. Default value is 'active'
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+              - closed
+        - name: country
+          in: query
+          description: One of country managed by channel. You can provide a comma separated list to search several countries at once
+          schema:
+            type: string
+        - name: segment
+          in: query
+          description: The channel segment. You can provide a comma separated list to search several segments at once
+          schema:
+            type: string
+        - name: permission
+          in: query
+          description: Filters the channels that have an account associated with them.
+          schema:
+            type: string
+            enum:
+              - notempty
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - name: id
+          in: query
+          description: Single or multiple values allowed. Use Comma as separator values. Exactly match Id expected.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: ./channel.model.oas2.yml#/components/schemas/ChannelPaginatedCollectionHal
+      security:
+        - Token: []
+  '/v1/channel/{id}':
+    get:
+      summary: View a Channel
+      description: |-
+        ### View relevant information about a specific channel
+
+        To use this endpoint, you will need to know the ID of the channel you wish to take a closer look at (remember that you can look for a channel's ID with the [List Channels](https://developer.shopping-feed.com/channel-api/channel/v1channel-collectionfetch) endpoint). You will be able to get the same information as with the *List Channels* endpoint.
+      operationId: v1.channel.fetch
+      parameters:
+        - name: id
+          in: path
+          description: Channel ID
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./channel.model.oas2.yml#/components/schemas/ChannelHal
+      security:
+        - Token: []
+components:
+  parameters:
+    taxonomyId:
+      name: taxonomyId
+      in: path
+      description: The taxonomy id.
+      required: true
+      schema:
+        type: integer
+    id:
+      name: id
+      in: path
+      description: The Channel ID
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

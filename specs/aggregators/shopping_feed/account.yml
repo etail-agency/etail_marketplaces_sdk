@@ -1,0 +1,50 @@
+openapi: 3.1.0
+info:
+  title: Account API
+  description: Account management API
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+paths:
+  /v1/me:
+    get:
+      summary: View my Information
+      description: |-
+        ### Fetch your account's information
+
+        This endpoint returns comprehensive information about the account you are using along with information from the store to which the account is linked.
+
+        The *Store* object of this resource contains powerful information, such as its ID, the payment type, the number of existing orders, the permissions your store has, the number of timeline events in the last 24 hours, etc.
+      operationId: v1.account-me.get
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./account.model.oas2.yml#/components/schemas/MeHal
+      security:
+        - Token: []
+components:
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shoppingfeed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shoppingfeed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

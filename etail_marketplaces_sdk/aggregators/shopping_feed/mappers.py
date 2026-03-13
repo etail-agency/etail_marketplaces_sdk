@@ -2,9 +2,9 @@
 ShoppingFeed mappers — raw API response dict → canonical SDK models.
 
 This is the ONLY file that should be updated when the ShoppingFeed OpenAPI spec changes.
-Cross-reference with: specs/aggregators/shopping_feed/openapi.json
+Cross-reference with: specs/aggregators/shopping_feed/order.yml
 
-ShoppingFeed API reference: https://merchant-api-doc.shopping-feed.com/
+ShoppingFeed API reference: https://developer.shopping-feed.com/order-api
 """
 
 from __future__ import annotations
@@ -25,25 +25,40 @@ def _parse_dt(value: Optional[str]) -> Optional[datetime]:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _build_name(data: dict[str, Any]) -> str:
+    """Combine first name, last name, and company into a display name."""
+    first = data.get("firstName") or ""
+    last = data.get("lastName") or ""
+    full = f"{first} {last}".strip()
+    company = data.get("company") or ""
+    if company and full:
+        return f"{full} ({company})"
+    return company or full
+
+
 def _map_address(data: dict[str, Any]) -> Address:
     return Address(
-        name=f"{data.get('firstName', '')} {data.get('lastName', '')}".strip(),
-        address_line1=data.get("street", ""),
-        postal_code=data.get("postalCode", ""),
-        city=data.get("city", ""),
-        country=data.get("country", ""),
+        name=_build_name(data),
+        address_line1=data.get("street") or "",
+        address_line2=data.get("street2") or None,
+        postal_code=data.get("postalCode") or "",
+        city=data.get("city") or "",
+        country=data.get("country") or "",
         phone=data.get("phone") or data.get("mobilePhone"),
         email=data.get("email"),
     )
 
 
 def _map_invoice_address(data: dict[str, Any]) -> InvoiceAddress:
+    street = data.get("street") or ""
+    street2 = data.get("street2") or ""
+    full_street = f"{street}, {street2}".strip(", ") if street2 else street
     return InvoiceAddress(
-        name=f"{data.get('firstName', '')} {data.get('lastName', '')}".strip(),
-        address=data.get("street", ""),
-        postal_code=data.get("postalCode", ""),
-        city=data.get("city", ""),
-        country=data.get("country", ""),
+        name=_build_name(data),
+        address=full_street,
+        postal_code=data.get("postalCode") or "",
+        city=data.get("city") or "",
+        country=data.get("country") or "",
         phone=data.get("phone") or data.get("mobilePhone"),
         email=data.get("email"),
     )
@@ -69,7 +84,7 @@ def map_order(
         aggregator_order_id=str(raw.get("id", "")),
         marketplace_order_id=raw.get("reference", ""),
         aggregator_id=aggregator_id,
-        marketplace_id=raw.get("channelId") or 0,
+        marketplace_id=raw.get("_embedded", {}).get("channel", {}).get("id") or raw.get("channelId") or 0,
         brand_id=brand.id,
         order_date=created_at,
         status=raw.get("status", ""),
@@ -138,7 +153,7 @@ def map_invoice(
         order_date=_parse_dt(raw.get("createdAt")) or datetime.now(),
         brand_id=brand.id,
         aggregator_id=aggregator_id,
-        marketplace_id=raw.get("channelId") or 0,
+        marketplace_id=raw.get("_embedded", {}).get("channel", {}).get("id") or raw.get("channelId") or 0,
         company_info=brand.company_info,
         logo_path=brand.logo_url,
         footer_text=brand.invoice_footer_text,

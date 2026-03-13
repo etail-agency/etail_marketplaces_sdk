@@ -110,6 +110,43 @@ class MiraklClient(BaseMarketplace):
         raw = self._fetch_raw_products(updated_since)
         return [map_product(r, self.marketplace_id) for r in raw]
 
+    def fetch_raw_orders(self, days_ago: Optional[int] = None, **kwargs) -> list[dict]:
+        """Return Mirakl order payloads without normalisation.
+
+        Each dict is the raw Mirakl OR11 API record — identical to the ``raw``
+        field on each :class:`~etail_marketplaces_sdk.models.order.Order` returned
+        by :meth:`fetch_orders`.
+
+        Args:
+            days_ago: Fetch orders from the last N days.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_orders(days_ago)
+
+    def fetch_raw_stock(self, skus: Optional[list[str]] = None, **kwargs) -> list[dict]:
+        """Return Mirakl offer payloads without normalisation (Offers API OF21).
+
+        Args:
+            skus: Optional list of SKUs to filter. Fetches all if omitted.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_offers(skus)
+
+    def fetch_raw_catalogue(self, updated_since=None, **kwargs) -> list[dict]:
+        """Return Mirakl product payloads without normalisation (Products API P11).
+
+        Args:
+            updated_since: Only return products updated after this date.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_products(updated_since)
+
     # ------------------------------------------------------------------
     # Private HTTP methods
     # ------------------------------------------------------------------

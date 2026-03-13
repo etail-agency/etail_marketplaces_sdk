@@ -97,6 +97,21 @@ class LengowClient(BaseAggregator):
 
         return map_order(raw, self.aggregator_id, marketplace_id, self.brand)
 
+    def fetch_raw_orders(self, days_ago: Optional[int] = None, **kwargs) -> list[dict]:
+        """Return Lengow order payloads without normalisation.
+
+        Each dict is the raw Lengow API record — identical to the ``raw`` field
+        on each :class:`~etail_marketplaces_sdk.models.order.Order` returned by
+        :meth:`fetch_orders`.
+
+        Args:
+            days_ago: Fetch orders from the last N days.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_orders(days_ago)
+
     # ------------------------------------------------------------------
     # Private HTTP methods
     # ------------------------------------------------------------------
@@ -125,14 +140,15 @@ class LengowClient(BaseAggregator):
         token, account_id = self._get_token()
         headers = {"Authorization": token}
 
-        from_date = (datetime.now().date() - timedelta(days=days_ago)) if days_ago else None
+        # Spec requires format: date-time (ISO 8601)
+        from_dt = (datetime.now() - timedelta(days=days_ago)) if days_ago else None
         params: dict = {
             "account_id": account_id,
             "marketplace": self.marketplace_name,
             "page_size": 100,
         }
-        if from_date:
-            params["marketplace_order_date_from"] = str(from_date)
+        if from_dt:
+            params["marketplace_order_date_from"] = from_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
         url: Optional[str] = BASE_URL + "v3.0/orders/"
         while url:

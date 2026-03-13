@@ -1,0 +1,108 @@
+openapi: 3.1.0
+info:
+  title: Auth API
+  description: Authorization API
+  contact:
+    email: support@shopping-feed.com
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+paths:
+  /v1/auth:
+    post:
+      summary: Retrieve authentication credentials
+      description: |-
+        ### Fetch your authentication credentials
+
+        This endpoint allows you to authenticate yourself. Use this resource in order to get the credentials you need to start using our API.
+
+        Upon valid authentication, it returns a token that allows our API to know the extent of your access rights. This token has to be used in the Authorization header when querying our API as explained in the Authorization section.
+
+        You can authenticate using different methods :
+
+          1. The main method is the Password method. It allows you to retrieve your access token using your account username and password. It returns a token that allows our API to know the extent of your access rights.
+
+          2. The Authorization Code method allows you to retrieve your access token using an OAuth2 authorization code. A valid code can only be provided by a designated authorization server.
+      operationId: v1.account-auth.post
+      parameters:
+        - name: Content-Type
+          in: header
+          description: application/json
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: ./auth.model.oas2.yml#/components/schemas/Password
+                - $ref: ./auth.model.oas2.yml#/components/schemas/AuthorizationCode
+                - $ref: ./auth.model.oas2.yml#/components/schemas/JwtAssertion
+              type: object
+        required: false
+      responses:
+        '200':
+          description: Response also returns a cookie containing the token.
+          headers:
+            Set-Cookie:
+              description: Shoppingfeed token
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: ./auth.model.oas2.yml#/components/schemas/TokenHal
+        '400':
+          description: |
+            If the grant type requested is not valid, a 'Bad Request' error will be returned.
+          headers: {}
+          content:
+            application/json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+              examples:
+                Example 1:
+                  value:
+                    type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                    title: Bad Request
+                    detail: Invalid grant type
+                    status: 400
+        '401':
+          description: |
+            If the username / password combination is not valid a 'Not Authorized' error will be returned.
+          headers: {}
+          content:
+            application/json:
+              schema:
+                $ref: ./common.oas2.yml#/components/schemas/error-response
+              examples:
+                Example 1:
+                  value:
+                    type: 'http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html'
+                    title: Not Authorized
+                    detail: Invalid username or password
+                    status: 401
+      security: []
+      x-codegen-request-body-name: body
+components:
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/v3/en/developers) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+x-original-swagger-version: '2.0'

@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: Taxonomy API
+  version: '1.0'
+servers:
+  - url: 'https://api.shopping-feed.com/'
+security:
+  - Token: []
+tags:
+  - name: Taxonomy
+paths:
+  '/v1/channel/taxonomy/{taxonomyId}/category':
+    get:
+      summary: List Taxonomy Categories
+      operationId: v1.channel-taxonomy-category-collection.get
+      parameters:
+        - name: taxonomyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: query
+          description: The category ID. You can provide a coma separated list to search several IDs at once.
+          schema:
+            type: string
+        - name: channelCategoryId
+          in: query
+          description: Channel category ID to find. You can provide a coma separated list to search several IDs at once.
+          schema:
+            type: string
+        - name: label
+          in: query
+          description: Category label. The search will return all categories containing the provided characters. At least 2 characters must be provided.
+          schema:
+            minLength: 2
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./channel-taxonomy.model.oas2.yml#/components/schemas/CategoryPaginatedCollectionHal
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      security:
+        - Token: []
+      x-private: true
+      x-internal: false
+  '/v1/channel/taxonomy/{taxonomyId}/category/{categoryId}/attribute':
+    get:
+      summary: List Taxonomy Attributes
+      operationId: v1.channel-taxonomy-attribute-collection.get
+      parameters:
+        - name: taxonomyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: query
+          description: Attribute ID. You can provide a comma-separated list to search several IDs at once.
+          schema:
+            type: integer
+        - name: channelAttributeId
+          in: query
+          description: Channel attribute ID. You can provide a comma-separated list to search several IDs at once.
+          schema:
+            type: string
+        - name: label
+          in: query
+          description: Attribute label. The search will return all attributes containing the provided characters. At least 2 characters must be provided.
+          schema:
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - schema:
+            type: string
+            enum:
+              - visible
+              - hidden
+          in: query
+          name: visibility
+          description: Attribute visibility state
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./channel-taxonomy.model.oas2.yml#/components/schemas/AttributePaginatedCollectionHal
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      security:
+        - Token: []
+      x-private: true
+      x-internal: false
+      x-stoplight:
+        id: 2l7bemczrzedj
+    parameters:
+      - schema:
+          type: string
+        name: taxonomyId
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: categoryId
+        in: path
+        required: true
+        description: Channel category id
+  '/v1/channel/taxonomy/{taxonomyId}/constraintgroup/{constraintGroupId}/constraint':
+    get:
+      summary: List Taxonomy Constraints
+      operationId: v1.channel-taxonomy-constraintGroup-constraint-collection.get
+      parameters:
+        - name: taxonomyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: constraintGroupId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: label
+          in: query
+          description: Constraint label. Search will return all constraint containing provided characters. At least 2 characters must be provided.
+          schema:
+            minLength: 2
+            type: string
+        - $ref: ./common.oas2.yml#/components/parameters/limit
+        - $ref: ./common.oas2.yml#/components/parameters/page
+        - schema:
+            type: string
+            enum:
+              - application/hal+json
+              - application/stream+json
+            default: application/hal+json
+          in: header
+          name: Accept
+        - schema:
+            type: string
+          in: query
+          description: 'Channel constraint ID has to be an exact match. Squared brackets `[]` around the value in the filter will be ignored'
+          name: channelConstraintId
+      responses:
+        '200':
+          description: ''
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./channel-taxonomy.model.oas2.yml#/components/schemas/ConstraintPaginatedCollectionHal
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      security:
+        - Token: []
+      x-private: true
+      x-internal: false
+components:
+  parameters:
+    taxonomyId:
+      name: taxonomyId
+      in: path
+      required: true
+      schema:
+        type: integer
+    constraintGroupId:
+      name: constraintGroupId
+      in: path
+      required: true
+      schema:
+        type: integer
+  securitySchemes:
+    Token:
+      type: apiKey
+      description: |-
+        The Shopping Feed API uses Bearer Authentication.
+
+        You must include an `Authorization` header when making requests to the API:
+
+        > Authorization: Bearer *token*
+        > 
+        You can find your token on [your feed page](https://app.shopping-feed.com/tools/infos) in Shopping Feed.
+
+        For example:
+
+        > Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890
+      name: Authorization
+      in: header
+  responses:
+    ResourceNotFound:
+      description: ''
+      content:
+        application/json:
+          schema:
+            title: Error Response
+            required:
+              - detail
+              - status
+              - title
+              - type
+            type: object
+            properties:
+              type:
+                type: string
+              title:
+                type: string
+              detail:
+                type: string
+              status:
+                type: integer
+          examples:
+            Example 1:
+              value:
+                type: 'https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.5'
+                title: 'Cannot GET http://api.shopping-feed.com/v1/imaginary'
+                detail: Some details
+                status: 404
+      headers:
+        Content-Type:
+          schema:
+            type: string
+x-original-swagger-version: '2.0'
