@@ -6,12 +6,20 @@ companion `mappers.py` module.
 
 All clients extend `BaseAggregator` and share the same public interface:
 
-| Method | Description |
-|---|---|
-| `fetch_orders(days_ago)` | Fetch orders for the last N days |
-| `fetch_invoices(days_ago)` | Fetch invoices for the last N days |
-| `fetch_shipments(days_ago)` | Fetch shipments for the last N days |
-| `fetch_order(order_id)` | Fetch a single order by ID |
+| Method | Returns | Description |
+|---|---|---|
+| `fetch_orders(days_ago)` | `list[Order]` | Normalised orders for the last N days |
+| `fetch_invoices(days_ago)` | `list[Invoice]` | Normalised invoices for the last N days |
+| `fetch_shipments(days_ago)` | `list[Shipment]` | Normalised shipments for the last N days |
+| `fetch_order(order_id)` | `Order` | Normalised single order by ID |
+| `fetch_raw_orders(days_ago)` | `list[dict]` | **Raw** platform payloads — no normalisation |
+| `fetch_raw_shipments(days_ago)` | `list[dict]` | **Raw** shipment payloads *(ChannelEngine only)* |
+
+!!! tip "Accessing raw data"
+    Every normalised model also carries a `.raw` field containing the original
+    platform dict.  `fetch_raw_orders()` gives you the same data **without**
+    constructing the canonical model — useful when you need platform-specific
+    fields that the `Order` model does not expose.
 
 ---
 

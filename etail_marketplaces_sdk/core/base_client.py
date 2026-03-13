@@ -4,6 +4,10 @@ BaseClient — abstract interface shared by all aggregator and marketplace clien
 Design principles:
 - Every stream method has a default implementation that raises StreamNotSupportedError.
   Concrete clients override only the streams they actually support.
+- Each canonical stream (fetch_orders, fetch_stock, …) has a raw counterpart
+  (fetch_raw_orders, fetch_raw_stock, …) that returns the unmodified platform
+  payload as a list[dict].  This lets callers access platform-specific fields
+  that the canonical model does not expose.
 - `supported_streams` is a class-level set that each concrete client declares,
   making it easy to introspect at runtime.
 - No I/O, no credentials fetching, no DB logic lives here — pure interface.
@@ -45,7 +49,7 @@ class BaseClient(ABC):
         date_to: Optional[date] = None,
     ) -> list:
         """
-        Fetch a list of Order objects.
+        Fetch a list of normalised Order objects.
 
         Args:
             days_ago:  Convenience shortcut — fetch orders from the last N days.
@@ -57,8 +61,32 @@ class BaseClient(ABC):
         """
         raise StreamNotSupportedError(StreamType.ORDERS.name, type(self).__name__)
 
+    def fetch_raw_orders(
+        self,
+        days_ago: Optional[int] = None,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+    ) -> list[dict]:
+        """
+        Fetch orders as unmodified platform payloads (no normalisation).
+
+        Useful when you need platform-specific fields that the canonical
+        :class:`~etail_marketplaces_sdk.models.order.Order` model does not expose.
+        The returned dicts are identical to the ``raw`` field on each ``Order``
+        returned by :meth:`fetch_orders`.
+
+        Args:
+            days_ago:  Convenience shortcut — fetch orders from the last N days.
+            date_from: Explicit start date.
+            date_to:   Explicit end date.
+
+        Returns:
+            list[dict] — one dict per order, exactly as returned by the platform API.
+        """
+        raise StreamNotSupportedError(StreamType.ORDERS.name, type(self).__name__)
+
     def fetch_order(self, order_id: str) -> object:
-        """Fetch a single Order by its platform order ID."""
+        """Fetch a single normalised Order by its platform order ID."""
         raise StreamNotSupportedError(StreamType.ORDERS.name, type(self).__name__)
 
     # ------------------------------------------------------------------
@@ -67,13 +95,25 @@ class BaseClient(ABC):
 
     def fetch_stock(self, skus: Optional[list[str]] = None) -> list:
         """
-        Fetch stock levels.
+        Fetch normalised stock levels.
 
         Args:
             skus: Optional list of SKUs to filter. Fetches all if omitted.
 
         Returns:
             list[StockLevel]
+        """
+        raise StreamNotSupportedError(StreamType.STOCK.name, type(self).__name__)
+
+    def fetch_raw_stock(self, skus: Optional[list[str]] = None) -> list[dict]:
+        """
+        Fetch stock levels as unmodified platform payloads.
+
+        Args:
+            skus: Optional list of SKUs to filter. Fetches all if omitted.
+
+        Returns:
+            list[dict]
         """
         raise StreamNotSupportedError(StreamType.STOCK.name, type(self).__name__)
 
@@ -86,13 +126,28 @@ class BaseClient(ABC):
         updated_since: Optional[date] = None,
     ) -> list:
         """
-        Fetch product catalogue listings.
+        Fetch normalised product catalogue listings.
 
         Args:
             updated_since: Only return products updated after this date.
 
         Returns:
             list[Product]
+        """
+        raise StreamNotSupportedError(StreamType.CATALOGUE.name, type(self).__name__)
+
+    def fetch_raw_catalogue(
+        self,
+        updated_since: Optional[date] = None,
+    ) -> list[dict]:
+        """
+        Fetch product catalogue listings as unmodified platform payloads.
+
+        Args:
+            updated_since: Only return products updated after this date.
+
+        Returns:
+            list[dict]
         """
         raise StreamNotSupportedError(StreamType.CATALOGUE.name, type(self).__name__)
 
@@ -107,10 +162,24 @@ class BaseClient(ABC):
         date_to: Optional[date] = None,
     ) -> list:
         """
-        Fetch shipment / tracking records.
+        Fetch normalised shipment / tracking records.
 
         Returns:
             list[Shipment]
+        """
+        raise StreamNotSupportedError(StreamType.SHIPMENTS.name, type(self).__name__)
+
+    def fetch_raw_shipments(
+        self,
+        days_ago: Optional[int] = None,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+    ) -> list[dict]:
+        """
+        Fetch shipment records as unmodified platform payloads.
+
+        Returns:
+            list[dict]
         """
         raise StreamNotSupportedError(StreamType.SHIPMENTS.name, type(self).__name__)
 

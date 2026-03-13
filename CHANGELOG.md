@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [0.2.3] - 2026-03-13
+
+### Fixed — spec alignment (`specs/aggregators/channelengine/openapi.json` v2.22.11)
+
+- **Wrong shipments endpoint**: `_fetch_raw_shipments()` and `_fetch_shipment_by_order_no()` were calling `GET /v2/shipments`, which only accepts `POST` in the spec. Corrected to `GET /v2/shipments/merchant` (`ShipmentIndex` operation).
+- **Wrong date filter parameter**: `_fetch_raw_shipments()` was sending `fromDate`; the correct parameter on `/v2/shipments/merchant` is `fromShipmentDate`.
+- **Broken pagination in shipments mode**: the pagination loop compared the per-page `Count` against `TotalCount`, which would prematurely stop on any multi-page response. Replaced with the same `len(accumulated) >= TotalCount or not batch` pattern already used in `_fetch_raw_orders()`.
+- **Wrong lookup parameter in `_fetch_order_by_channel_order_no()`**: sent `channelOrderNo` (singular string); the spec defines it as `channelOrderNos` (plural array).
+- **Wrong tracking field in `map_shipment()`**: read `shipment.get("TrackAndTrace")` which does not exist in `MerchantShipmentResponse`. Corrected to `TrackTraceNo`.
+
+## [0.2.2] - 2026-03-13
+
+### Added
+- **`fetch_raw_orders(days_ago)` on all clients**: Every client (`LengowClient`, `ShoppingFeedClient`, `ChannelEngineClient`, `ManomanoClient`, `MiraklClient`) now exposes a public `fetch_raw_orders()` method that returns the unmodified platform payloads as `list[dict]` — identical to the `.raw` field on each canonical `Order`, but without constructing the model.  On `ChannelEngineClient` the method respects the `orders_api` flag (hits `/v2/orders` or `/v2/shipments` accordingly).
+- **`ChannelEngineClient.fetch_raw_shipments(days_ago)`**: Always hits `GET /v2/shipments`, regardless of `orders_api`.  Useful when you need the raw shipment record even on a tenant configured with `orders_api=True`.
+- **`MiraklClient.fetch_raw_stock(skus)` / `fetch_raw_catalogue(updated_since)`**: Expose the raw Mirakl Offers (OF21) and Products (P11) payloads without normalisation.
+- **`BaseClient.fetch_raw_orders`, `fetch_raw_shipments`, `fetch_raw_stock`, `fetch_raw_catalogue`**: Added as default-raising stubs to `BaseClient` (same pattern as `fetch_orders` etc.), making the raw-access contract part of the core interface.
+
+### Documentation
+- Updated `docs/api/aggregators.md` shared interface table to include all `fetch_raw_*` methods with return types.
+- Updated `docs/api/marketplaces.md` shared interface table to include `fetch_raw_orders`, `fetch_raw_stock`, and `fetch_raw_catalogue`.
+
 ## [0.2.1] - 2026-03-13
 
 ### Added

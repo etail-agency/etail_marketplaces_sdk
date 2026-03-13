@@ -79,6 +79,21 @@ class ShoppingFeedClient(BaseAggregator):
         raw = self._fetch_raw_specific_order(order_id)
         return map_order(raw, self.aggregator_id, self.brand)
 
+    def fetch_raw_orders(self, days_ago: Optional[int] = None, **kwargs) -> list[dict]:
+        """Return ShoppingFeed order payloads without normalisation.
+
+        Each dict is the raw ShoppingFeed API record — identical to the ``raw``
+        field on each :class:`~etail_marketplaces_sdk.models.order.Order` returned
+        by :meth:`fetch_orders`.
+
+        Args:
+            days_ago: Fetch orders from the last N days.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_orders(days_ago)
+
     # ------------------------------------------------------------------
     # Private HTTP methods
     # ------------------------------------------------------------------

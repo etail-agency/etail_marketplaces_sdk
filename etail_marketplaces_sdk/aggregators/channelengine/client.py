@@ -138,6 +138,43 @@ class ChannelEngineClient(BaseAggregator):
             raise ResourceNotFoundError("Order", order_id)
         return map_order(raw, self.aggregator_id, self.marketplace_id, self.brand)
 
+    def fetch_raw_orders(self, days_ago: Optional[int] = None, **kwargs) -> list[dict]:
+        """Return ChannelEngine order payloads without normalisation.
+
+        Respects the ``orders_api`` flag set at construction time:
+
+        - ``orders_api=False``: returns records from ``GET /v2/shipments``.
+        - ``orders_api=True``:  returns records from ``GET /v2/orders``.
+
+        Each dict is identical to the ``raw`` field on each
+        :class:`~etail_marketplaces_sdk.models.order.Order` returned by
+        :meth:`fetch_orders`.
+
+        Args:
+            days_ago: Fetch records from the last N days.
+
+        Returns:
+            list[dict]
+        """
+        if self.orders_api:
+            return self._fetch_raw_orders(days_ago)
+        return self._fetch_raw_shipments(days_ago)
+
+    def fetch_raw_shipments(self, days_ago: Optional[int] = None, **kwargs) -> list[dict]:
+        """Return ChannelEngine shipment payloads from ``GET /v2/shipments`` without normalisation.
+
+        Always uses the ``/v2/shipments`` endpoint regardless of the ``orders_api``
+        flag.  Useful when you need the raw shipment record even on a tenant that
+        has ``orders_api=True`` set.
+
+        Args:
+            days_ago: Fetch shipments from the last N days.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_shipments(days_ago)
+
     def fetch_invoice_for_order(self, order_id: str) -> Optional[object]:
         """Fetch a single order and return its Invoice, or None if not yet shipped."""
         if self.orders_api:
@@ -153,37 +190,36 @@ class ChannelEngineClient(BaseAggregator):
         return map_invoice(raw, self.aggregator_id, self.marketplace_id, self.brand, self.tax_rate)
 
     # ------------------------------------------------------------------
-    # Private HTTP helpers — /v2/shipments
+    # Private HTTP helpers — /v2/shipments/merchant
     # ------------------------------------------------------------------
 
     def _fetch_raw_shipments(self, days_ago: Optional[int] = None) -> list[dict]:
         shipments: list[dict] = []
         from_date = datetime.now(timezone.utc) - timedelta(days=days_ago or 30)
+        page = 1
 
-        params: dict = {
-            "apikey": self.credentials.api_key,
-            "fromDate": from_date.isoformat(),
-            "page": 1,
-        }
-        url = f"{self.base_url}/v2/shipments"
-
-        while url:
+        while True:
+            params: dict = {
+                "apikey": self.credentials.api_key,
+                "fromShipmentDate": from_date.isoformat(),
+                "page": page,
+            }
             try:
-                response = requests.get(url, params=params, timeout=30)
+                response = requests.get(
+                    f"{self.base_url}/v2/shipments/merchant", params=params, timeout=30
+                )
                 if response.status_code == 429:
                     raise RateLimitError()
                 response.raise_for_status()
                 data = response.json()
 
-                shipments.extend(data.get("Content", []))
+                batch = data.get("Content", [])
+                shipments.extend(batch)
 
                 total = data.get("TotalCount", 0)
-                count = data.get("Count", 0)
-                if count < total:
-                    params["page"] = params.get("page", 1) + 1
-                    params = {"apikey": self.credentials.api_key, "page": params["page"]}
-                else:
+                if len(shipments) >= total or not batch:
                     break
+                page += 1
             except RateLimitError:
                 raise
             except requests.RequestException as exc:
@@ -195,7 +231,9 @@ class ChannelEngineClient(BaseAggregator):
     def _fetch_shipment_by_order_no(self, order_no: str) -> Optional[dict]:
         params = {"apikey": self.credentials.api_key, "channelOrderNos": [order_no]}
         try:
-            response = requests.get(f"{self.base_url}/v2/shipments", params=params, timeout=30)
+            response = requests.get(
+                f"{self.base_url}/v2/shipments/merchant", params=params, timeout=30
+            )
             response.raise_for_status()
             content = response.json().get("Content", [])
             return content[0] if content else None
@@ -249,7 +287,7 @@ class ChannelEngineClient(BaseAggregator):
         return results
 
     def _fetch_order_by_channel_order_no(self, order_no: str) -> Optional[dict]:
-        params = {"apikey": self.credentials.api_key, "channelOrderNo": order_no}
+        params = {"apikey": self.credentials.api_key, "channelOrderNos": [order_no]}
         try:
             response = requests.get(f"{self.base_url}/v2/orders", params=params, timeout=30)
             response.raise_for_status()

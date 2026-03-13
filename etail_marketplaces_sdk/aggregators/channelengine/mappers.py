@@ -183,7 +183,7 @@ def map_shipment(
         aggregator_id=aggregator_id,
         marketplace_id=marketplace_id,
         carrier=shipment.get("Method"),
-        tracking_number=shipment.get("TrackAndTrace"),
+        tracking_number=shipment.get("TrackTraceNo"),
         status=ShipmentStatus.DELIVERED,
         shipped_at=_parse_dt(shipment.get("CreatedAt")),
         lines=lines,
