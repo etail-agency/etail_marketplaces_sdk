@@ -1,6 +1,17 @@
 """
 ChannelEngine mappers — raw API response dict → canonical SDK models.
 
+Two API sources are supported:
+
+  /v2/shipments  (legacy, CLOSED shipments only — no address data)
+      map_order()       → Order
+      map_invoice()     → Invoice
+      map_shipment()    → Shipment
+
+  /v2/orders  (orders API — full address, explicit VAT, all statuses)
+      map_order_from_orders_api()    → Order
+      map_invoice_from_orders_api()  → Optional[Invoice]  (SHIPPED/CLOSED only)
+
 This is the ONLY file that should be updated when the ChannelEngine OpenAPI spec changes.
 Cross-reference with: specs/aggregators/channelengine/openapi.json
 
@@ -21,6 +32,10 @@ from etail_marketplaces_sdk.models.order import Order, OrderItem
 from etail_marketplaces_sdk.models.shipment import Shipment, ShipmentLine, ShipmentStatus
 
 logger = logging.getLogger(__name__)
+
+# Statuses from /v2/orders that represent a fully shipped order and should
+# trigger invoice creation.
+_SHIPPED_STATUSES = {"SHIPPED", "CLOSED"}
 
 
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
@@ -212,3 +227,174 @@ def _map_invoice_items(
         total_tax += item_tax
 
     return items, subtotal, total_tax
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# /v2/orders  mappers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _map_address(addr: Optional[dict[str, Any]]) -> InvoiceAddress:
+    """Build an InvoiceAddress from a ChannelEngine address block."""
+    if not addr:
+        return InvoiceAddress(name="", address="", postal_code="", city="", country="")
+    first = addr.get("FirstName") or ""
+    last = addr.get("LastName") or ""
+    full_name = f"{first} {last}".strip()
+    company = addr.get("CompanyName") or ""
+    if company and full_name:
+        full_name = f"{full_name} ({company})"
+    elif company:
+        full_name = company
+    return InvoiceAddress(
+        name=full_name,
+        address=addr.get("Line1") or "",
+        postal_code=addr.get("ZipCode") or "",
+        city=addr.get("City") or "",
+        country=addr.get("CountryIso") or "",
+    )
+
+
+def map_order_from_orders_api(
+    order: dict[str, Any],
+    aggregator_id: int,
+    marketplace_id: Optional[int],
+    brand: Brand,
+) -> Optional[Order]:
+    """Map a single record from GET /v2/orders → canonical Order."""
+    channel_order_no = order.get("ChannelOrderNo", "")
+    if not channel_order_no:
+        return None
+
+    merchant_order_no = order.get("MerchantOrderNo") or channel_order_no
+    order_date = _parse_dt(order.get("CreatedAt")) or datetime.now(timezone.utc)
+    updated_at = _parse_dt(order.get("UpdatedAt"))
+
+    items: list[OrderItem] = []
+    for line in order.get("Lines", []):
+        qty = line.get("Quantity", 0)
+        if qty <= 0:
+            continue
+        items.append(
+            OrderItem(
+                reference=line.get("MerchantProductNo") or line.get("ChannelProductNo") or "",
+                name=line.get("Description") or "",
+                quantity=qty,
+                unit_price_excl_vat=Decimal(str(line.get("UnitPriceExclVat", 0))),
+                unit_price_incl_vat=Decimal(str(line.get("UnitPriceInclVat", 0))),
+                vat_rate=Decimal(str(line.get("VatRate", 0))),
+                total_price_excl_vat=Decimal(str(line.get("LineTotalExclVat", 0))),
+                total_price_incl_vat=Decimal(str(line.get("LineTotalInclVat", 0))),
+                sku=line.get("MerchantProductNo") or line.get("ChannelProductNo") or "",
+                ean=line.get("Gtin"),
+            )
+        )
+
+    return Order(
+        aggregator_order_id=channel_order_no,
+        marketplace_order_id=merchant_order_no,
+        aggregator_id=aggregator_id,
+        marketplace_id=marketplace_id or 0,
+        brand_id=brand.id,
+        order_date=order_date,
+        status=order.get("Status") or "",
+        eur_amount_excl_vat=Decimal(str(order.get("TotalExclVat", 0))),
+        eur_amount_incl_vat=Decimal(str(order.get("TotalInclVat", 0))),
+        eur_shipping_fee_excl_vat=Decimal(str(order.get("ShippingCostsExclVat", 0))),
+        eur_shipping_fee_incl_vat=Decimal(str(order.get("ShippingCostsInclVat", 0))),
+        original_currency=order.get("CurrencyCode") or "EUR",
+        original_amount=Decimal(str(order.get("OriginalTotalInclVat") or order.get("TotalInclVat", 0))),
+        original_shipping_fee=Decimal(
+            str(order.get("OriginalShippingCostsInclVat") or order.get("ShippingCostsInclVat", 0))
+        ),
+        items=items,
+        payment_method=order.get("PaymentMethod"),
+        created_date=order_date,
+        updated_date=updated_at,
+        raw=order,
+    )
+
+
+def map_invoice_from_orders_api(
+    order: dict[str, Any],
+    aggregator_id: int,
+    marketplace_id: Optional[int],
+    brand: Brand,
+    tax_rate: Decimal = Decimal("20"),
+) -> Optional[Invoice]:
+    """Map a single record from GET /v2/orders → canonical Invoice.
+
+    Returns None for orders that have not yet been shipped (status not in
+    ``_SHIPPED_STATUSES``) or that carry no line items.
+    """
+    channel_order_no = order.get("ChannelOrderNo", "")
+    if not channel_order_no:
+        return None
+
+    status = order.get("Status") or ""
+    if status not in _SHIPPED_STATUSES:
+        return None
+
+    order_date = _parse_dt(order.get("CreatedAt")) or datetime.now(timezone.utc)
+    billing_address = _map_address(order.get("BillingAddress"))
+    shipping_address = _map_address(order.get("ShippingAddress")) if order.get("ShippingAddress") else None
+
+    items: list[InvoiceItem] = []
+    subtotal = Decimal("0")
+
+    for line in order.get("Lines", []):
+        qty = line.get("Quantity", 0)
+        if qty <= 0:
+            continue
+
+        unit_excl = Decimal(str(line.get("UnitPriceExclVat", 0)))
+        line_excl = Decimal(str(line.get("LineTotalExclVat", 0)))
+        line_vat_rate = Decimal(str(line.get("VatRate", 0))) or tax_rate
+
+        items.append(
+            InvoiceItem(
+                reference=line.get("MerchantProductNo") or line.get("ChannelProductNo") or "",
+                name=line.get("Description") or "",
+                quantity=qty,
+                unit_price=unit_excl,
+                total_price=line_excl,
+                tax_rate=line_vat_rate,
+                sku=line.get("MerchantProductNo") or line.get("ChannelProductNo") or "",
+            )
+        )
+        subtotal += line_excl
+
+    if not items:
+        return None
+
+    merchant_order_no = order.get("MerchantOrderNo") or ""
+    try:
+        invoice_number: Any = int(merchant_order_no)
+    except (ValueError, TypeError):
+        invoice_number = merchant_order_no or str(random.randint(3_500_000, 4_999_999))
+
+    total_amount = Decimal(str(order.get("TotalInclVat", 0)))
+    shipping_cost = Decimal(str(order.get("ShippingCostsExclVat", 0)))
+
+    return Invoice(
+        invoice_number=invoice_number,
+        order_reference=channel_order_no,
+        order_date=order_date,
+        brand_id=brand.id,
+        aggregator_id=aggregator_id,
+        marketplace_id=marketplace_id or 0,
+        company_info=brand.company_info,
+        logo_path=brand.logo_url,
+        footer_text=brand.invoice_footer_text,
+        brand_initials=brand.initials,
+        billing_address=billing_address,
+        shipping_address=shipping_address,
+        subtotal=subtotal,
+        vat_rate=tax_rate,
+        total_amount=total_amount,
+        items=items,
+        shipping_cost=shipping_cost,
+        payment_method=order.get("PaymentMethod") or "",
+        invoice_status="paid",
+        currency=order.get("CurrencyCode") or "EUR",
+        payment_plan_commission=Decimal("0"),
+    )
