@@ -58,30 +58,26 @@ pip install "etail-marketplaces-sdk[all]"
 ## Quick Start
 
 ```python
-from decimal import Decimal
-from etail_marketplaces_sdk.aggregators.channelengine.client import ChannelEngineClient
-from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
-from etail_marketplaces_sdk.models.brand import Brand
+from etail_marketplaces_sdk import LengowClient, LengowCredentials
+from etail_marketplaces_sdk.models import Brand
 
-brand = Brand(id=1, name="My Brand", slug="my_brand", initials="MB",
-              logo_url="", company_info="", invoice_footer_text="")
+brand = Brand(id=1, name="My Brand", slug="my-brand", initials="MB")
 
-# orders_api=True → use /v2/orders (full address data, all statuses)
-# orders_api=False (default) → use /v2/shipments (CLOSED only)
-client = ChannelEngineClient(
-    credentials=ApiKeyCredentials(api_key="<api-key>"),
-    base_url="https://<tenant>.channelengine.net/api",
+client = LengowClient(
+    credentials=LengowCredentials(
+        account_id="<account-id>",
+        token="<token>",
+        secret="<secret>",
+    ),
     brand=brand,
-    marketplace_id=42,
-    tax_rate=Decimal("20"),
-    orders_api=True,
+    aggregator_id=3,
 )
 
-orders   = client.fetch_orders(days_ago=30)    # all statuses
-invoices = client.fetch_invoices(days_ago=30)  # SHIPPED / CLOSED only, with full address
+orders   = client.fetch_orders(days_ago=7)
+invoices = client.fetch_invoices(days_ago=7)
 ```
 
-See [Getting Started](docs/getting-started.md) for Lengow and ShoppingFeed examples.
+See [Getting Started](docs/getting-started.md) for ChannelEngine, ShoppingFeed, and sink connector examples.
 
 ---
 
@@ -131,9 +127,4 @@ uv run bump-my-version bump patch
 
 ## Contributing
 
-Contributions are welcome! To add a new platform:
-
-1. Create a new folder under `etail_marketplaces_sdk/aggregators/` or `etail_marketplaces_sdk/marketplaces/`.
-2. Add a `client.py` (extends `BaseAggregator` or `BaseMarketplace`) and a `mappers.py`.
-3. Drop the platform's OpenAPI spec in `specs/`.
-4. Expose the new client in the root `__init__.py`.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, code standards, the development workflow, and the full release process.
