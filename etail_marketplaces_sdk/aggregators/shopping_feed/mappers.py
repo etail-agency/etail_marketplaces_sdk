@@ -17,6 +17,7 @@ from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
+from etail_marketplaces_sdk.models.stock import StockLevel
 
 
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
@@ -61,6 +62,33 @@ def _map_invoice_address(data: dict[str, Any]) -> InvoiceAddress:
         country=data.get("country") or "",
         phone=data.get("phone") or data.get("mobilePhone"),
         email=data.get("email"),
+    )
+
+
+def map_stock_level(
+    record: dict[str, Any],
+    aggregator_id: int,
+    store_id: str,
+) -> StockLevel:
+    """Map a single ``GET /v1/catalog/{catalogId}/inventory`` item to a canonical :class:`StockLevel`.
+
+    Args:
+        record:        One item from ``_embedded.inventory[]``.
+                       Fields: id (inventory ID), reference (SKU), quantity, updatedAt.
+        aggregator_id: Numeric aggregator ID.
+        store_id:      ShoppingFeed store/catalog ID (used as warehouse_id).
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.stock.StockLevel`.
+    """
+    return StockLevel(
+        sku=record.get("reference") or "",
+        quantity_available=int(record.get("quantity") or 0),
+        aggregator_id=aggregator_id,
+        platform_id=str(record.get("id")) if record.get("id") is not None else None,
+        warehouse_id=str(store_id),
+        last_updated=_parse_dt(record.get("updatedAt")),
+        raw=record,
     )
 
 

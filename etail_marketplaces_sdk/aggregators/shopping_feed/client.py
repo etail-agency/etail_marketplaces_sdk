@@ -20,7 +20,7 @@ from typing import Optional
 import requests
 
 from etail_marketplaces_sdk.aggregators.base import BaseAggregator
-from etail_marketplaces_sdk.aggregators.shopping_feed.mappers import map_order, map_invoice
+from etail_marketplaces_sdk.aggregators.shopping_feed.mappers import map_order, map_invoice, map_stock_level
 from etail_marketplaces_sdk.core.credentials import BearerCredentials
 from etail_marketplaces_sdk.core.exceptions import RateLimitError, ResourceNotFoundError
 from etail_marketplaces_sdk.core.streams import StreamType
@@ -44,7 +44,7 @@ class ShoppingFeedClient(BaseAggregator):
 
     aggregator_id = 4
     name = "ShoppingFeed"
-    supported_streams = {StreamType.ORDERS, StreamType.INVOICES}
+    supported_streams = {StreamType.ORDERS, StreamType.INVOICES, StreamType.STOCK}
 
     def __init__(
         self,
@@ -95,6 +95,35 @@ class ShoppingFeedClient(BaseAggregator):
         """
         return self._fetch_raw_orders(days_ago)
 
+    def fetch_stock(self, skus: Optional[list[str]] = None, **kwargs) -> list:
+        """Fetch inventory levels as canonical :class:`StockLevel` objects.
+
+        Calls ``GET /v1/catalog/{catalogId}/inventory`` — the same catalog ID
+        as the store ID passed to the constructor.
+
+        Args:
+            skus: Optional list of product references (SKUs) to filter on.
+
+        Returns:
+            list[:class:`~etail_marketplaces_sdk.models.stock.StockLevel`]
+        """
+        raw = self._fetch_raw_stock(skus=skus)
+        return [map_stock_level(r, self.aggregator_id, self.store_id) for r in raw]
+
+    def fetch_raw_stock(self, skus: Optional[list[str]] = None, **kwargs) -> list[dict]:
+        """Return raw inventory records from ``GET /v1/catalog/{catalogId}/inventory``.
+
+        Each dict contains ``id`` (inventory ID), ``reference`` (SKU),
+        ``quantity``, and ``updatedAt``.
+
+        Args:
+            skus: Optional list of product references to filter on.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_stock(skus=skus)
+
     # ------------------------------------------------------------------
     # Private HTTP methods
     # ------------------------------------------------------------------
@@ -122,6 +151,29 @@ class ShoppingFeedClient(BaseAggregator):
             params["page"] += 1
 
         return orders
+
+    def _fetch_raw_stock(self, skus: Optional[list[str]] = None) -> list[dict]:
+        """Paginate through ``GET /v1/catalog/{catalogId}/inventory`` and return all records."""
+        inventory: list[dict] = []
+        url = f"https://api.shopping-feed.com/v1/catalog/{self.store_id}/inventory"
+        params: dict = {"page": 1, "limit": 100}
+        if skus:
+            params["reference"] = ",".join(skus)
+
+        while True:
+            response = requests.get(url, headers=self._headers, params=params, timeout=30)
+            if response.status_code == 429:
+                raise RateLimitError()
+            response.raise_for_status()
+            data = response.json()
+
+            inventory.extend(data.get("_embedded", {}).get("inventory", []))
+
+            if params["page"] >= data.get("pages", 1):
+                break
+            params["page"] += 1
+
+        return inventory
 
     def _fetch_raw_specific_order(self, order_id: str) -> dict:
         params = {"page": 1, "limit": 100, "reference": order_id}
