@@ -6,6 +6,7 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = [
+    "pandas>=3.0.1",
     "requests>=2.31.0",
 ]
 
@@ -13,11 +14,13 @@ dependencies = [
 postgres = ["sqlalchemy>=2.0", "psycopg2-binary>=2.9"]
 supabase = ["supabase>=2.0"]
 bigquery = ["google-cloud-bigquery>=3.0"]
+pandas = ["pandas>=2.0"]
 all = [
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
     "supabase>=2.0",
     "google-cloud-bigquery>=3.0",
+    "pandas>=2.0",
 ]
 dev = [
     "pytest>=8.0.0",

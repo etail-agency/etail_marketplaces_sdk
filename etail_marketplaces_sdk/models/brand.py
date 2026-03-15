@@ -9,11 +9,11 @@ from typing import Optional
 class Brand:
     id: int
     name: str
-    slug: str
-    initials: str
-    logo_url: str
-    company_info: str
-    invoice_footer_text: str
+    slug: Optional[str] = None
+    initials: Optional[str] = None
+    logo_url: Optional[str] = None
+    company_info: Optional[str] = None
+    invoice_footer_text: Optional[str] = None
     created_date: Optional[datetime] = None
     updated_date: Optional[datetime] = None
 

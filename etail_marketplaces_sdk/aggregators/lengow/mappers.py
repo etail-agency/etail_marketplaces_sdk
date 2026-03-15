@@ -40,6 +40,17 @@ LENGOW_MARKETPLACE_MAPPING: dict[str, dict] = {
 }
 
 
+def _parse_currency(value: Any) -> str:
+    """Extract ISO 4217 code from either a plain string or the object the API actually returns.
+
+    The spec declares ``currency`` as a string, but the live API returns an object
+    like ``{"iso_a3": "EUR", "symbol": "€", "name": "Euro"}``.  This handles both.
+    """
+    if isinstance(value, dict):
+        return value.get("iso_a3") or "EUR"
+    return value or "EUR"
+
+
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
@@ -93,9 +104,8 @@ def map_order(
     marketplace_id: Optional[int],
     brand: Brand,
 ) -> Order:
-    # `currency` is a plain ISO 4217 string per the spec (e.g. "EUR"), not an object
-    currency = raw.get("currency") or "EUR"
-    original_currency = raw.get("original_currency") or currency
+    currency = _parse_currency(raw.get("currency"))
+    original_currency = _parse_currency(raw.get("original_currency")) if raw.get("original_currency") else currency
 
     order_date = _parse_dt(raw.get("marketplace_order_date")) or datetime.now()
     updated_at = _parse_dt(raw.get("updated_at"))
@@ -172,8 +182,7 @@ def map_invoice(
 
     items, subtotal, _ = _map_invoice_items(raw, tax_rate)
 
-    # `currency` is a plain ISO 4217 string per the spec
-    currency = raw.get("currency") or "EUR"
+    currency = _parse_currency(raw.get("currency"))
 
     shipping_incl = Decimal(str(raw.get("shipping", 0)))
     shipping_excl = (shipping_incl * 100) / (100 + tax_rate)
