@@ -1,11 +1,12 @@
 [project]
 name = "etail-marketplaces-sdk"
-version = "0.2.5"
+version = "0.3.0"
 description = "Unified SDK for eCommerce marketplace and aggregator APIs — fetch, normalise, and sink data streams (orders, stock, catalogue, shipments, returns, invoices, analytics, ads, settlements, reviews)"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = [
+    "pandas>=3.0.1",
     "requests>=2.31.0",
 ]
 
@@ -13,11 +14,13 @@ dependencies = [
 postgres = ["sqlalchemy>=2.0", "psycopg2-binary>=2.9"]
 supabase = ["supabase>=2.0"]
 bigquery = ["google-cloud-bigquery>=3.0"]
+pandas = ["pandas>=2.0"]
 all = [
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
     "supabase>=2.0",
     "google-cloud-bigquery>=3.0",
+    "pandas>=2.0",
 ]
 dev = [
     "pytest>=8.0.0",
@@ -33,7 +36,7 @@ build-backend = "hatchling.build"
 packages = ["etail_marketplaces_sdk"]
 
 [tool.bumpversion]
-current_version = "0.2.5"
+current_version = "0.3.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"

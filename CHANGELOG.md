@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [0.3.0] - 2026-03-12
+
+### Added — Catalogue & Stock streams for aggregators + Mirakl spec alignment
+
+#### ChannelEngine — `CATALOGUE` stream
+
+- **`fetch_catalogue(skus)` / `fetch_raw_catalogue(skus)`**: New public methods on `ChannelEngineClient` that hit `GET /v2/products` with full offset pagination.  Optional `skus` list is forwarded as `merchantProductNoList` for targeted product lookup.
+- **`map_product()` in `aggregators/channelengine/mappers.py`**: New mapper that converts a `MerchantProductResponse` record to a canonical `Product`, mapping `MerchantProductNo` → `sku`, `Name`, `Ean`, `Brand`, `Description`, `Price`, `IsActive`, `ImageUrl` (plus additional images from `ExtraImageUrl1`–`ExtraImageUrl3`), and `ExtraData` key/value pairs to `ProductAttribute` objects.
+- `StreamType.CATALOGUE` added to `ChannelEngineClient.supported_streams`.
+
+#### ShoppingFeed — `CATALOGUE` stream
+
+- **`fetch_catalogue(updated_since, skus)` / `fetch_raw_catalogue(updated_since, skus)`**: New public methods on `ShoppingFeedClient` that hit `GET /v1/catalog/{catalogId}/reference` with page-based pagination.  `updated_since` maps to the `publishedAfter` query parameter; `skus` is forwarded as a comma-separated `reference` filter.
+- **`map_product()` in `aggregators/shopping_feed/mappers.py`**: New mapper that converts a ShoppingFeed `reference` record to a canonical `Product`, mapping `reference` → `sku`, `id` → `platform_id`, `name`, `ean`/`gtin`, `price`, `description`, `brand`, `category`, images from `_embedded`, attributes from `_embedded`, and `status`/`state` to `is_active`.
+- `StreamType.CATALOGUE` added to `ShoppingFeedClient.supported_streams`.
+
+#### Mirakl — spec alignment (`specs/marketplaces/mirakl/seller_openapi.json`)
+
+- **Consolidated catalogue + stock under OF21**: `fetch_catalogue()`, `fetch_raw_catalogue()`, `fetch_stock()`, and `fetch_raw_stock()` all delegate to the new `_fetch_raw_offers()` helper (`GET /api/offers`, OF21).  The removed `_fetch_raw_products()` (P31) is no longer needed — OF21 provides richer data (`product_title`, `product_brand`, `product_description`, `price`, `active`, `category_code`, `product_references`).
+- **`map_product()` rewritten to use OF21 fields**: `shop_sku` → `sku`, `product_title` → `name`, `product_sku` → `platform_id`, `product_brand` → `brand`, `product_description` → `description`, `price` → `price_incl_vat`, `active` → `is_active`, EAN extracted from `product_references`.
+- **`map_stock_level()` carries `raw`**: `raw=raw` is now passed to the `StockLevel` constructor for full traceability.
+
+### Fixed — Mirakl mapper & client (`specs/marketplaces/mirakl/seller_openapi.json`)
+
+- **Order totals**: `map_order()` now reads `price` for `eur_amount_incl_vat` and `shipping_price` for `eur_shipping_fee_incl_vat` (previously used non-existent `total_price` / `total_shipping_price` fields from the spec).
+- **Order line items**: `_map_order_items()` now reads `price_unit` for `unit_price_incl_vat`, `product_title` for `name`, and `price` for `total_price_incl_vat` (previously used `unit_price`, `offer_title`, `total_price`).
+- **Address mapping**: `_map_address()` / `_map_invoice_address()` now read `country_iso_code` directly (spec field), no longer treating `country` as a nested object.  New `_build_name()` helper combines `firstname`, `lastname`, and `company` consistently.
+- **OF21 pagination was incomplete**: `_fetch_raw_offers()` previously fetched only one page.  Re-implemented with correct offset-based loop (`max=100`, `offset` increments), matching the OR11 pattern.
+- **OF21 SKU filter parameter**: was sent as `shop_sku`; the correct OF21 parameter is `sku`.
+- **OR11 pagination used wrong token**: `_fetch_raw_orders()` was using `next_page_token` (seek-based) instead of `offset` (offset-based) as defined in the OR11 spec.
+- **`fetch_order()` lookup parameter**: now sends `order_ids` with `max=1` for single-order retrieval.
+
 ## [0.2.5] - 2026-03-12
 
 ### Fixed — spec alignment (`specs/aggregators/lengow/openapi.json` v3.0)

@@ -12,6 +12,9 @@ Two API sources are supported:
       map_order_from_orders_api()    → Order
       map_invoice_from_orders_api()  → Optional[Invoice]  (SHIPPED/CLOSED only)
 
+  /v2/products  (catalogue)
+      map_product()     → Product
+
 This is the ONLY file that should be updated when the ChannelEngine OpenAPI spec changes.
 Cross-reference with: specs/aggregators/channelengine/openapi.json
 
@@ -29,7 +32,9 @@ from typing import Any, Optional
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
+from etail_marketplaces_sdk.models.product import Product, ProductAttribute, ProductImage
 from etail_marketplaces_sdk.models.shipment import Shipment, ShipmentLine, ShipmentStatus
+from etail_marketplaces_sdk.models.stock import StockLevel
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +50,104 @@ def _parse_dt(value: Optional[str]) -> Optional[datetime]:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
         return None
+
+
+def map_stock_level(
+    record: dict[str, Any],
+    aggregator_id: int,
+    marketplace_id: Optional[int],
+    location_name: Optional[str] = None,
+) -> StockLevel:
+    """Map a single ``GET /v2/offer/stock`` record to a canonical :class:`StockLevel`.
+
+    Args:
+        record:         One item from the ``Content`` array of the stock response.
+                        Fields: MerchantProductNo, StockLocationId, Stock, UpdatedAt.
+        aggregator_id:  Numeric aggregator ID.
+        marketplace_id: Optional static marketplace ID.
+        location_name:  Human-readable name of the stock location (from
+                        ``GET /v2/stocklocations``), enriched at call time.
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.stock.StockLevel`.
+    """
+    location_id = record.get("StockLocationId")
+    raw = {**record}
+    if location_name:
+        raw["StockLocationName"] = location_name
+    return StockLevel(
+        sku=record.get("MerchantProductNo") or "",
+        quantity_available=int(record.get("Stock") or 0),
+        aggregator_id=aggregator_id,
+        marketplace_id=marketplace_id,
+        warehouse_id=str(location_id) if location_id is not None else None,
+        last_updated=_parse_dt(record.get("UpdatedAt")),
+        raw=raw,
+    )
+
+
+def map_product(
+    record: dict[str, Any],
+    aggregator_id: int,
+    marketplace_id: Optional[int],
+) -> Product:
+    """Map a single ``GET /v2/products`` record to a canonical :class:`Product`.
+
+    Fields sourced from ``MerchantProductResponse`` in the OpenAPI spec.
+    ``ExtraData`` name/value pairs become :class:`ProductAttribute` objects.
+    ``ImageUrl`` + ``ExtraImageUrl1–9`` are collected into :class:`ProductImage` objects.
+
+    Args:
+        record:         One item from the ``Content`` array of the products response.
+        aggregator_id:  Numeric aggregator ID.
+        marketplace_id: Optional static marketplace ID.
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.product.Product`.
+    """
+    images: list[ProductImage] = []
+    for pos, key in enumerate(
+        ["ImageUrl", "ExtraImageUrl1", "ExtraImageUrl2", "ExtraImageUrl3",
+         "ExtraImageUrl4", "ExtraImageUrl5", "ExtraImageUrl6",
+         "ExtraImageUrl7", "ExtraImageUrl8", "ExtraImageUrl9"],
+        start=0,
+    ):
+        url = record.get(key)
+        if url:
+            images.append(ProductImage(url=url, position=pos))
+
+    attributes: list[ProductAttribute] = []
+    for extra in record.get("ExtraData") or []:
+        name = extra.get("Key") or extra.get("key") or ""
+        value = extra.get("Value") or extra.get("value") or ""
+        if name:
+            attributes.append(ProductAttribute(name=name, value=str(value)))
+
+    for attr_key in ("Size", "Color", "ManufacturerProductNumber",
+                     "ParentMerchantProductNo", "ParentMerchantProductNo2",
+                     "ShippingTime"):
+        val = record.get(attr_key)
+        if val is not None:
+            attributes.append(ProductAttribute(name=attr_key, value=str(val)))
+
+    price_raw = record.get("Price")
+    price = Decimal(str(price_raw)) if price_raw is not None else None
+
+    return Product(
+        sku=record.get("MerchantProductNo") or "",
+        name=record.get("Name") or "",
+        aggregator_id=aggregator_id,
+        marketplace_id=marketplace_id,
+        platform_id=record.get("MerchantProductNo"),
+        ean=record.get("Ean"),
+        description=record.get("Description"),
+        price_incl_vat=price,
+        brand=record.get("Brand"),
+        images=images,
+        attributes=attributes,
+        is_active=bool(record.get("IsActive", True)),
+        raw=record,
+    )
 
 
 def map_order(

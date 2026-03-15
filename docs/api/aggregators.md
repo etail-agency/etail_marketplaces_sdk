@@ -14,6 +14,10 @@ All clients extend `BaseAggregator` and share the same public interface:
 | `fetch_order(order_id)` | `Order` | Normalised single order by ID |
 | `fetch_raw_orders(days_ago)` | `list[dict]` | **Raw** platform payloads — no normalisation |
 | `fetch_raw_shipments(days_ago)` | `list[dict]` | **Raw** shipment payloads *(ChannelEngine only)* |
+| `fetch_stock(skus)` | `list[StockLevel]` | Normalised stock levels *(ChannelEngine, ShoppingFeed)* |
+| `fetch_raw_stock(skus)` | `list[dict]` | **Raw** stock payloads *(ChannelEngine, ShoppingFeed)* |
+| `fetch_catalogue(skus, updated_since)` | `list[Product]` | Normalised product listings *(ChannelEngine, ShoppingFeed)* |
+| `fetch_raw_catalogue(skus, updated_since)` | `list[dict]` | **Raw** product payloads *(ChannelEngine, ShoppingFeed)* |
 
 !!! tip "Accessing raw data"
     Every normalised model also carries a `.raw` field containing the original
@@ -36,6 +40,34 @@ All clients extend `BaseAggregator` and share the same public interface:
 ---
 
 ## ShoppingFeed
+
+### Catalogue stream
+
+ShoppingFeed exposes the full product catalogue via `GET /v1/catalog/{catalogId}/reference`.
+
+```python
+from etail_marketplaces_sdk.aggregators.shopping_feed.client import ShoppingFeedClient
+from etail_marketplaces_sdk.core.credentials import BearerCredentials
+
+client = ShoppingFeedClient(
+    credentials=BearerCredentials(token="<your-token>"),
+    store_id="<store-id>",
+    aggregator_id=2,
+)
+
+# Fetch all product references (paginated automatically)
+products = client.fetch_catalogue()
+
+# Filter to specific SKUs
+products = client.fetch_catalogue(skus=["SKU-001", "SKU-002"])
+
+# Fetch only products updated since a date
+from datetime import datetime, timezone
+products = client.fetch_catalogue(updated_since=datetime(2026, 1, 1, tzinfo=timezone.utc))
+
+# Raw dicts (no canonical model construction)
+raw = client.fetch_raw_catalogue()
+```
 
 ::: etail_marketplaces_sdk.aggregators.shopping_feed.client
 
@@ -114,6 +146,30 @@ invoices = client.fetch_invoices(days_ago=30)
 
 ::: etail_marketplaces_sdk.aggregators.channelengine.client
 
+### Catalogue stream
+
+ChannelEngine exposes the full merchant product catalogue via `GET /v2/products`.
+
+```python
+from etail_marketplaces_sdk.aggregators.channelengine.client import ChannelEngineClient
+from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
+
+client = ChannelEngineClient(
+    credentials=ApiKeyCredentials(api_key="<your-api-key>"),
+    base_url="https://<tenant>.channelengine.net/api",
+    aggregator_id=1,
+)
+
+# Fetch all products (paginated automatically)
+products = client.fetch_catalogue()
+
+# Filter to specific SKUs (merchantProductNoList)
+products = client.fetch_catalogue(skus=["SKU-001", "SKU-002"])
+
+# Raw dicts (no canonical model construction)
+raw = client.fetch_raw_catalogue()
+```
+
 ### Mappers reference
 
 The mapper module is the **single file** that encodes all field-mapping logic.
@@ -127,3 +183,4 @@ Update it when the ChannelEngine OpenAPI spec changes.
         - map_shipment
         - map_order_from_orders_api
         - map_invoice_from_orders_api
+        - map_product
