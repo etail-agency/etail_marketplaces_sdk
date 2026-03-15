@@ -3,6 +3,7 @@ ShoppingFeed mappers — raw API response dict → canonical SDK models.
 
 This is the ONLY file that should be updated when the ShoppingFeed OpenAPI spec changes.
 Cross-reference with: specs/aggregators/shopping_feed/order.yml
+                      specs/aggregators/shopping_feed/catalog_product.yml
 
 ShoppingFeed API reference: https://developer.shopping-feed.com/order-api
 """
@@ -17,6 +18,7 @@ from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
+from etail_marketplaces_sdk.models.product import Product, ProductAttribute, ProductImage
 from etail_marketplaces_sdk.models.stock import StockLevel
 
 
@@ -88,6 +90,67 @@ def map_stock_level(
         platform_id=str(record.get("id")) if record.get("id") is not None else None,
         warehouse_id=str(store_id),
         last_updated=_parse_dt(record.get("updatedAt")),
+        raw=record,
+    )
+
+
+def map_product(
+    record: dict[str, Any],
+    aggregator_id: int,
+    store_id: str,
+) -> Product:
+    """Map a single ``GET /v1/catalog/{catalogId}/reference`` item to a canonical :class:`Product`.
+
+    The ShoppingFeed reference model is a flat representation of a catalog product.
+    Nested ``_embedded.images`` and ``_embedded.attributes`` are mapped to
+    :class:`ProductImage` and :class:`ProductAttribute` collections respectively.
+
+    Args:
+        record:        One item from ``_embedded.reference[]``.
+                       Fields: id, reference (SKU), name, status, price,
+                       quantity, _embedded.images, _embedded.attributes.
+        aggregator_id: Numeric aggregator ID.
+        store_id:      ShoppingFeed store/catalog ID (used as marketplace_id context).
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.product.Product`.
+    """
+    embedded = record.get("_embedded") or {}
+
+    images: list[ProductImage] = []
+    for pos, img in enumerate(embedded.get("images") or []):
+        url = img.get("url") or img.get("link") or img.get("href") or ""
+        if url:
+            images.append(ProductImage(url=url, position=pos))
+
+    attributes: list[ProductAttribute] = []
+    for attr in embedded.get("attributes") or []:
+        name = attr.get("name") or attr.get("key") or ""
+        value = attr.get("value") or ""
+        if name:
+            attributes.append(ProductAttribute(name=name, value=str(value)))
+
+    price_raw = record.get("price")
+    price = Decimal(str(price_raw)) if price_raw is not None else None
+
+    status = record.get("status") or record.get("state") or "published"
+    is_active = str(status).lower() != "unpublished"
+
+    return Product(
+        sku=record.get("reference") or "",
+        name=record.get("name") or "",
+        aggregator_id=aggregator_id,
+        marketplace_id=None,
+        platform_id=str(record.get("id")) if record.get("id") is not None else None,
+        ean=record.get("ean") or record.get("gtin"),
+        description=record.get("description"),
+        price_incl_vat=price,
+        brand=record.get("brand") or (embedded.get("brand") or {}).get("name"),
+        category=(embedded.get("category") or {}).get("name") or record.get("category"),
+        images=images,
+        attributes=attributes,
+        is_active=is_active,
+        updated_at=_parse_dt(record.get("updatedAt") or record.get("publishedAt")),
         raw=record,
     )
 

@@ -35,6 +35,7 @@ from etail_marketplaces_sdk.aggregators.channelengine.mappers import (
     map_invoice_from_orders_api,
     map_order,
     map_order_from_orders_api,
+    map_product,
     map_stock_level,
 )
 from etail_marketplaces_sdk.core.credentials import ApiKeyCredentials
@@ -49,7 +50,7 @@ class ChannelEngineClient(BaseAggregator):
     """
     ChannelEngine aggregator client.
 
-    Supported streams: ORDERS, INVOICES, SHIPMENTS
+    Supported streams: ORDERS, INVOICES, SHIPMENTS, STOCK, CATALOGUE
 
     Args:
         credentials:       ApiKeyCredentials(api_key=...)
@@ -63,7 +64,7 @@ class ChannelEngineClient(BaseAggregator):
 
     aggregator_id = 6
     name = "ChannelEngine"
-    supported_streams = {StreamType.ORDERS, StreamType.INVOICES, StreamType.SHIPMENTS, StreamType.STOCK}
+    supported_streams = {StreamType.ORDERS, StreamType.INVOICES, StreamType.SHIPMENTS, StreamType.STOCK, StreamType.CATALOGUE}
 
     def __init__(
         self,
@@ -224,6 +225,49 @@ class ChannelEngineClient(BaseAggregator):
             loc_id = record.get("StockLocationId")
             record["StockLocationName"] = location_map.get(loc_id)
         return raw
+
+    def fetch_catalogue(
+        self,
+        updated_since=None,
+        skus: Optional[list[str]] = None,
+        **kwargs,
+    ) -> list:
+        """Fetch all merchant products as canonical :class:`Product` objects.
+
+        Calls ``GET /v2/products`` and paginates through all pages.
+
+        Args:
+            updated_since: Ignored by the ChannelEngine products endpoint (no
+                           server-side date filter is available). Pass ``skus``
+                           to narrow the result set instead.
+            skus:          Optional list of ``MerchantProductNo`` values to
+                           retrieve.
+
+        Returns:
+            list[:class:`~etail_marketplaces_sdk.models.product.Product`]
+        """
+        raw = self._fetch_raw_catalogue(skus=skus)
+        return [map_product(r, self.aggregator_id, self.marketplace_id) for r in raw]
+
+    def fetch_raw_catalogue(
+        self,
+        updated_since=None,
+        skus: Optional[list[str]] = None,
+        **kwargs,
+    ) -> list[dict]:
+        """Return raw product records from ``GET /v2/products`` without normalisation.
+
+        Each dict matches the ``MerchantProductResponse`` schema — see the
+        OpenAPI spec at ``specs/aggregators/channelengine/openapi.json``.
+
+        Args:
+            updated_since: Ignored (no server-side date filter available).
+            skus:          Optional list of ``MerchantProductNo`` values.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_catalogue(skus=skus)
 
     def fetch_invoice_for_order(self, order_id: str) -> Optional[object]:
         """Fetch a single order and return its Invoice, or None if not yet shipped."""
@@ -420,3 +464,55 @@ class ChannelEngineClient(BaseAggregator):
                 break
 
         return records
+
+    # ------------------------------------------------------------------
+    # Private HTTP helpers — /v2/products
+    # ------------------------------------------------------------------
+
+    def _fetch_raw_catalogue(
+        self,
+        skus: Optional[list[str]] = None,
+    ) -> list[dict]:
+        """Paginate through ``GET /v2/products`` and return all product records.
+
+        ``page`` is 1-based.  ``pageSize`` defaults to 100 (max allowed by the
+        API is not specified; 100 is safe).
+
+        Args:
+            skus: Optional list of ``MerchantProductNo`` values to filter on.
+        """
+        products: list[dict] = []
+        params: dict = {
+            "apikey": self.credentials.api_key,
+            "pageSize": 100,
+            "page": 1,
+        }
+        if skus:
+            params["merchantProductNoList"] = skus
+
+        while True:
+            try:
+                response = requests.get(
+                    f"{self.base_url}/v2/products",
+                    params=params,
+                    timeout=30,
+                )
+                if response.status_code == 429:
+                    raise RateLimitError()
+                response.raise_for_status()
+                data = response.json()
+
+                batch = data.get("Content", [])
+                products.extend(batch)
+
+                total = data.get("TotalCount", 0)
+                if len(products) >= total or not batch:
+                    break
+                params["page"] += 1
+            except RateLimitError:
+                raise
+            except requests.RequestException as exc:
+                logger.error("ChannelEngine fetch_catalogue error: %s", exc)
+                break
+
+        return products

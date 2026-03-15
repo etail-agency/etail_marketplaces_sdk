@@ -20,7 +20,7 @@ from typing import Optional
 import requests
 
 from etail_marketplaces_sdk.aggregators.base import BaseAggregator
-from etail_marketplaces_sdk.aggregators.shopping_feed.mappers import map_order, map_invoice, map_stock_level
+from etail_marketplaces_sdk.aggregators.shopping_feed.mappers import map_order, map_invoice, map_product, map_stock_level
 from etail_marketplaces_sdk.core.credentials import BearerCredentials
 from etail_marketplaces_sdk.core.exceptions import RateLimitError, ResourceNotFoundError
 from etail_marketplaces_sdk.core.streams import StreamType
@@ -33,7 +33,7 @@ class ShoppingFeedClient(BaseAggregator):
     """
     ShoppingFeed aggregator client.
 
-    Supported streams: ORDERS, INVOICES
+    Supported streams: ORDERS, INVOICES, STOCK, CATALOGUE
 
     Args:
         credentials:  BearerCredentials(token=api_token)
@@ -44,7 +44,7 @@ class ShoppingFeedClient(BaseAggregator):
 
     aggregator_id = 4
     name = "ShoppingFeed"
-    supported_streams = {StreamType.ORDERS, StreamType.INVOICES, StreamType.STOCK}
+    supported_streams = {StreamType.ORDERS, StreamType.INVOICES, StreamType.STOCK, StreamType.CATALOGUE}
 
     def __init__(
         self,
@@ -124,6 +124,49 @@ class ShoppingFeedClient(BaseAggregator):
         """
         return self._fetch_raw_stock(skus=skus)
 
+    def fetch_catalogue(
+        self,
+        updated_since=None,
+        skus: Optional[list[str]] = None,
+        **kwargs,
+    ) -> list:
+        """Fetch all catalog references as canonical :class:`Product` objects.
+
+        Calls ``GET /v1/catalog/{catalogId}/reference`` (spec:
+        ``catalog_product.yml``) and paginates through all pages.
+
+        Args:
+            updated_since: ISO date or datetime string.  When provided, only
+                           references published/updated after this date are
+                           returned (maps to the ``publishedAfter`` query param).
+            skus:          Optional list of SKU ``reference`` values to filter on.
+
+        Returns:
+            list[:class:`~etail_marketplaces_sdk.models.product.Product`]
+        """
+        raw = self._fetch_raw_catalogue(updated_since=updated_since, skus=skus)
+        return [map_product(r, self.aggregator_id, self.store_id) for r in raw]
+
+    def fetch_raw_catalogue(
+        self,
+        updated_since=None,
+        skus: Optional[list[str]] = None,
+        **kwargs,
+    ) -> list[dict]:
+        """Return raw catalog reference records without normalisation.
+
+        Each dict is a ``reference`` object from the ShoppingFeed Catalog API
+        (``_embedded.reference[]``).
+
+        Args:
+            updated_since: ISO date/datetime string.  Maps to ``publishedAfter``.
+            skus:          Optional list of SKU ``reference`` values to filter on.
+
+        Returns:
+            list[dict]
+        """
+        return self._fetch_raw_catalogue(updated_since=updated_since, skus=skus)
+
     # ------------------------------------------------------------------
     # Private HTTP methods
     # ------------------------------------------------------------------
@@ -184,3 +227,46 @@ class ShoppingFeedClient(BaseAggregator):
         if not orders:
             raise ResourceNotFoundError("Order", order_id)
         return orders[0]
+
+    def _fetch_raw_catalogue(
+        self,
+        updated_since=None,
+        skus: Optional[list[str]] = None,
+    ) -> list[dict]:
+        """Paginate through ``GET /v1/catalog/{catalogId}/reference`` and return all records.
+
+        ``page`` is 1-based; ``limit`` defaults to 100.  The HAL response
+        embeds results under ``_embedded.reference``.
+
+        Args:
+            updated_since: ISO date/datetime string mapped to ``publishedAfter``.
+            skus:          Comma-joined ``reference`` values for server-side SKU filtering.
+        """
+        references: list[dict] = []
+        url = f"https://api.shopping-feed.com/v1/catalog/{self.store_id}/reference"
+        params: dict = {"page": 1, "limit": 100}
+
+        if updated_since is not None:
+            dt = updated_since
+            if hasattr(dt, "strftime"):
+                params["publishedAfter"] = dt.strftime("%Y-%m-%dT%H:%M:%S")
+            else:
+                params["publishedAfter"] = str(dt)
+
+        if skus:
+            params["reference"] = ",".join(skus)
+
+        while True:
+            response = requests.get(url, headers=self._headers, params=params, timeout=30)
+            if response.status_code == 429:
+                raise RateLimitError()
+            response.raise_for_status()
+            data = response.json()
+
+            references.extend(data.get("_embedded", {}).get("reference", []))
+
+            if params["page"] >= data.get("pages", 1):
+                break
+            params["page"] += 1
+
+        return references
