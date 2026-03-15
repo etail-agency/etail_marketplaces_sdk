@@ -30,6 +30,7 @@ from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
 from etail_marketplaces_sdk.models.shipment import Shipment, ShipmentLine, ShipmentStatus
+from etail_marketplaces_sdk.models.stock import StockLevel
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,40 @@ def _parse_dt(value: Optional[str]) -> Optional[datetime]:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
         return None
+
+
+def map_stock_level(
+    record: dict[str, Any],
+    aggregator_id: int,
+    marketplace_id: Optional[int],
+    location_name: Optional[str] = None,
+) -> StockLevel:
+    """Map a single ``GET /v2/offer/stock`` record to a canonical :class:`StockLevel`.
+
+    Args:
+        record:         One item from the ``Content`` array of the stock response.
+                        Fields: MerchantProductNo, StockLocationId, Stock, UpdatedAt.
+        aggregator_id:  Numeric aggregator ID.
+        marketplace_id: Optional static marketplace ID.
+        location_name:  Human-readable name of the stock location (from
+                        ``GET /v2/stocklocations``), enriched at call time.
+
+    Returns:
+        A populated :class:`~etail_marketplaces_sdk.models.stock.StockLevel`.
+    """
+    location_id = record.get("StockLocationId")
+    raw = {**record}
+    if location_name:
+        raw["StockLocationName"] = location_name
+    return StockLevel(
+        sku=record.get("MerchantProductNo") or "",
+        quantity_available=int(record.get("Stock") or 0),
+        aggregator_id=aggregator_id,
+        marketplace_id=marketplace_id,
+        warehouse_id=str(location_id) if location_id is not None else None,
+        last_updated=_parse_dt(record.get("UpdatedAt")),
+        raw=raw,
+    )
 
 
 def map_order(
