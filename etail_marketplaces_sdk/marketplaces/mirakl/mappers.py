@@ -23,7 +23,7 @@ from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
-from etail_marketplaces_sdk.models.product import Product, ProductAttribute, ProductImage
+from etail_marketplaces_sdk.models.product import Product, ProductAttribute
 from etail_marketplaces_sdk.models.stock import StockLevel
 
 # OR11 order states that mean the order has been shipped and an invoice
