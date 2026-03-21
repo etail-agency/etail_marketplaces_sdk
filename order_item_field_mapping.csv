@@ -1,0 +1,70 @@
+section,canonical_field,type,lengow_raw_field,shoppingfeed_raw_field,channelengine_raw_field,mirakl_raw_field,notes
+,,,,,,Nested path from the parent order: Lengow → packages[].cart[]  |  ShoppingFeed → items[]  |  ChannelEngine → Lines[]  |  Mirakl → order_lines[]
+,,,,,,
+CANONICAL MAPPING — OrderItem fields,,,,,,
+,reference,str,marketplace_product_id,reference,MerchantProductNo (→ ChannelProductNo),offer_sku,Platform product reference / identifier
+,name,str,title,name,Description,product_title,
+,quantity,int,quantity,quantity,Quantity,quantity,
+,unit_price_excl_vat,Decimal,X (hardcoded 0),X (hardcoded 0),UnitPriceExclVat,X (hardcoded 0),Only ChannelEngine provides excl-VAT unit price directly
+,unit_price_incl_vat,Decimal,amount,price,UnitPriceInclVat,price_unit,
+,vat_rate,Decimal,X (hardcoded 0),X (hardcoded 0),VatRate,taxes[0].rate,Mirakl stores VAT in a taxes array; ChannelEngine exposes it directly on the line
+,total_price_excl_vat,Decimal,X (hardcoded 0),X (hardcoded 0),LineTotalExclVat,X (hardcoded 0),
+,total_price_incl_vat,Decimal,amount × quantity,price × quantity,LineTotalInclVat,price (line total),Lengow and ShoppingFeed require client-side multiplication; CE and Mirakl have it directly
+,sku,str,merchant_product_id.id (or merchant_product_id if string),reference,MerchantProductNo,offer_sku,Merchant's own SKU
+,ean,str,X,X,Gtin,X,Only ChannelEngine exposes GTIN on the line item
+,commission,Decimal,commission,commission,FeeFixed (on line; shipments: OrderLine.FeeFixed),total_commission (→ commission_fee),ManoMano: commission / commission_amount / marketplace_commission on each product
+,,,,,,
+PLATFORM-SPECIFIC LINE ITEM FIELDS — no canonical mapping (preserved in Order.raw),,,,,,
+,— (no canonical mapping),—,id,id,Id,order_line_id,Internal line ID on each platform
+,— (no canonical mapping),—,marketplace_order_line_id,X,ChannelOrderLineNo,X,Platform's own order line reference
+,— (no canonical mapping),—,X,X,X,order_line_index,Mirakl line position (1-based)
+,— (no canonical mapping),—,X,status,Status,order_line_state,Per-line status (distinct from order-level status)
+,— (no canonical mapping),—,X,X,X,order_line_state_reason_code / order_line_state_reason_label,
+,— (no canonical mapping),—,lengow_status,X,X,X,Lengow-normalised line status (e.g. waiting_shipment)
+,— (no canonical mapping),—,marketplace_status,X,X,X,Raw marketplace line status (before Lengow normalises)
+,— (no canonical mapping),—,feed_id,X,X,X,Lengow feed the line belongs to
+,— (no canonical mapping),—,marketplace_package_id,X,X,X,
+,— (no canonical mapping),—,category,X,X,category_code / category_label,Lengow: category string; Mirakl: code and label separately
+,— (no canonical mapping),—,url_product,X,X,X,Lengow product URL
+,— (no canonical mapping),—,url_image,image,X,X,Product image URL
+,— (no canonical mapping),—,X,channelReference,ChannelProductNo,X,Channel-specific product reference
+,— (no canonical mapping),—,X,X,X,offer_id,Mirakl internal offer integer ID
+,— (no canonical mapping),—,X,X,X,offer_state_code,Mirakl offer state
+,— (no canonical mapping),—,X,X,X,product_sku,Mirakl platform (marketplace) product SKU (distinct from offer_sku)
+,— (no canonical mapping),—,X,X,X,product_shop_sku,Mirakl: same as offer_sku (redundant)
+,— (no canonical mapping),—,X,X,X,description,Mirakl seller-set line description / delivery terms
+,— (no canonical mapping),—,tax,taxAmount,UnitVat / LineVat,taxes[].amount,VAT amount in monetary terms
+,— (no canonical mapping),—,X,X,X,taxes[].code,Mirakl tax code (e.g. VAT)
+,— (no canonical mapping),—,X,X,X,taxes[].tax_calculation_rule,Mirakl: e.g. PROPORTIONAL_TO_AMOUNT
+,— (no canonical mapping),—,discount,X,X,X,Line discount amount
+,— (no canonical mapping),—,shipping,additionalFields.shipping_price,X,shipping_price,Per-line shipping contribution
+,— (no canonical mapping),—,X,X,X,shipping_price_unit,
+,— (no canonical mapping),—,X,X,X,shipping_taxes[],Mirakl shipping VAT breakdown
+,— (no canonical mapping),—,original_amount,X,OriginalUnitPriceInclVat / OriginalLineTotalInclVat,X,Original amount before promotions
+,— (no canonical mapping),—,original_tax,X,OriginalUnitVat / OriginalLineVat,X,
+,— (no canonical mapping),—,original_discount,X,X,X,
+,— (no canonical mapping),—,original_shipping,X,X,X,
+,— (no canonical mapping),—,original_buyer_amount / original_buyer_tax,X,X,X,
+,— (no canonical mapping),—,X,X,X,commission_rate_vat / commission_vat / commission_taxes[],Mirakl commission tax breakdown (canonical line commission uses total_commission or commission_fee)
+,— (no canonical mapping),—,X,X,FeeRate,X,ChannelEngine percentage fee on the line (FeeFixed is mapped to OrderItem.commission)
+,— (no canonical mapping),—,X,X,OriginalFeeFixed,X,
+,— (no canonical mapping),—,X,X,X,promotions,Mirakl promotions applied to the line
+,— (no canonical mapping),—,X,X,X,can_refund,
+,— (no canonical mapping),—,X,X,X,cancelations,
+,— (no canonical mapping),—,X,X,X,refunds,
+,— (no canonical mapping),—,X,X,X,order_line_additional_fields,Mirakl operator-specific custom fields (e.g. vat-product-amount / vat-rate)
+,— (no canonical mapping),—,order_line_meta,additionalFields,ExtraData[],X,Generic extra/custom fields
+,— (no canonical mapping),—,X,X,X,price_amount_breakdown.parts[],Mirakl price breakdown (commissionable / debitable / payable parts)
+,— (no canonical mapping),—,X,X,X,product_medias[],Mirakl product image URLs (media_url / type / mime_type)
+,— (no canonical mapping),—,X,X,StockLocation.Id / StockLocation.Name,shipping_from.address,Stock location (CE) or shipping origin address (Mirakl)
+,— (no canonical mapping),—,X,X,X,shipped_date / received_date / debited_date / created_date / last_updated_date,Mirakl per-line lifecycle timestamps
+,— (no canonical mapping),—,max_shipping_date,X,ExpectedDeliveryDate / ExpectedShipmentDate / LatestDeliveryDate,shipping_deadline (at order level),Per-line shipping deadline or delivery date
+,— (no canonical mapping),—,created_at / updated_at,X,X,X,Lengow line creation/update timestamps
+,— (no canonical mapping),—,refunded_amount,X,X,X,
+,— (no canonical mapping),—,orderline_types,X,X,X,
+,— (no canonical mapping),—,X,X,IsFulfillmentByMarketplace,X,
+,— (no canonical mapping),—,X,X,Condition,X,Product condition (e.g. NEW)
+,— (no canonical mapping),—,X,X,BundleProductMerchantProductNo / BundleOrderLineId,X,Bundle order line references
+,— (no canonical mapping),—,X,X,CancellationRequestedQuantity,X,
+,— (no canonical mapping),—,X,ecotaxAmount,X,X,ShoppingFeed eco-tax amount
+,— (no canonical mapping),—,documents,X,X,X,Lengow per-line document links
