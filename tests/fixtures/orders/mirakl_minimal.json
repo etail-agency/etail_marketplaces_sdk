@@ -1,0 +1,32 @@
+{
+  "order_id": "M-ORD-1",
+  "created_date": "2025-01-15T12:00:00Z",
+  "order_state": "SHIPPING",
+  "currency_iso_code": "EUR",
+  "price": "80.00",
+  "shipping_price": "8.00",
+  "total_commission": "7.50",
+  "channel": { "label": "Mirakl Shop" },
+  "customer": {
+    "billing_address": {
+      "firstname": "X",
+      "lastname": "Y",
+      "street_1": "St",
+      "zip_code": "Z",
+      "city": "Ci",
+      "country_iso_code": "FR"
+    },
+    "shipping_address": {}
+  },
+  "order_lines": [
+    {
+      "quantity": 1,
+      "price_unit": "80.00",
+      "price": "80.00",
+      "offer_sku": "SKU-M",
+      "product_title": "Prod",
+      "taxes": [{ "rate": 20.0 }],
+      "total_commission": "2.00"
+    }
+  ]
+}

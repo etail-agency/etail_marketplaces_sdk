@@ -1,0 +1,29 @@
+{
+  "order_reference": "MM-1",
+  "created_at": "2025-01-15T12:00:00Z",
+  "status": "SHIPPED",
+  "marketplace_name": "ManoMano FR",
+  "total_price": { "amount": "55.00", "currency": "EUR" },
+  "shipping_price": { "amount": "5.00", "currency": "EUR" },
+  "addresses": {
+    "billing": {
+      "firstname": "F",
+      "lastname": "L",
+      "address_line1": "A",
+      "zipcode": "Z",
+      "city": "C",
+      "country": "FR"
+    },
+    "shipping": {}
+  },
+  "products": [
+    {
+      "seller_sku": "MM-SKU",
+      "title": "Hammer",
+      "quantity": 1,
+      "price_excluding_vat": { "amount": "45.83" },
+      "vat_rate": "20.00",
+      "commission": "4.50"
+    }
+  ]
+}

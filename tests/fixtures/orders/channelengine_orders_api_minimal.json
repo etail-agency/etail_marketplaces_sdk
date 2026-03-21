@@ -1,0 +1,27 @@
+{
+  "ChannelOrderNo": "CE-1",
+  "MerchantOrderNo": "M-1",
+  "CreatedAt": "2025-01-15T12:00:00Z",
+  "UpdatedAt": "2025-01-16T10:00:00Z",
+  "Status": "SHIPPED",
+  "ChannelName": "Bol",
+  "TotalInclVat": 120,
+  "TotalExclVat": 100,
+  "ShippingCostsInclVat": 5,
+  "ShippingCostsExclVat": 4,
+  "CurrencyCode": "EUR",
+  "TotalFee": 10,
+  "Lines": [
+    {
+      "Quantity": 2,
+      "MerchantProductNo": "CE-SKU",
+      "Description": "Line",
+      "UnitPriceExclVat": 50,
+      "UnitPriceInclVat": 60,
+      "VatRate": 20,
+      "LineTotalExclVat": 100,
+      "LineTotalInclVat": 120,
+      "FeeFixed": 5
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "ChannelOrderNo": "CE-SHIP-1",
+  "CreatedAt": "2025-01-15T12:00:00Z",
+  "GlobalChannelName": "Amazon DE",
+  "Lines": [
+    {
+      "Quantity": 1,
+      "MerchantProductNo": "X",
+      "ChannelProductNo": "Y",
+      "OrderLine": {
+        "Description": "D",
+        "UnitPriceInclVat": 25,
+        "FeeFixed": 2.5
+      }
+    }
+  ]
+}

@@ -31,6 +31,5 @@ jobs:
       - name: Lint with Ruff
         run: uv run ruff check .
 
-      # Uncomment when tests are added
-      # - name: Test with pytest
-      #   run: uv run pytest
+      - name: Test with pytest
+        run: uv run pytest
