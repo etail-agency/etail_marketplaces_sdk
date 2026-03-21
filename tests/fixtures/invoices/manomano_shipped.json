@@ -1,0 +1,28 @@
+{
+  "order_reference": "MM-INV",
+  "created_at": "2025-01-15T12:00:00Z",
+  "status": "SHIPPED",
+  "total_price": { "amount": "48.00", "currency": "EUR" },
+  "shipping_price": { "amount": "0", "currency": "EUR" },
+  "shipping_price_excluding_vat": { "amount": "0" },
+  "addresses": {
+    "billing": {
+      "firstname": "F",
+      "lastname": "L",
+      "address_line1": "A",
+      "zipcode": "Z",
+      "city": "C",
+      "country": "FR"
+    },
+    "shipping": {}
+  },
+  "products": [
+    {
+      "seller_sku": "MM-I",
+      "title": "Good",
+      "quantity": 1,
+      "price_excluding_vat": { "amount": "40.00" },
+      "vat_rate": "20.00"
+    }
+  ]
+}

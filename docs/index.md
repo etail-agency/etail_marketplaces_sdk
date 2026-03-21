@@ -11,6 +11,7 @@ This is a unified Python SDK for eCommerce marketplace and aggregator APIs. Its 
 - **Built-in Sinks**: Write data directly to Supabase, PostgreSQL, or BigQuery.
 - **Idempotent**: All sink connectors use upsert semantics so pipelines can be safely re-run.
 - **Traceability**: Every canonical model stores the unmodified platform payload in a `raw` field.
+- **Tested**: CI runs **pytest** over mapper and small client tests (mocked HTTP). Run `uv run pytest` locally after installing dev dependencies; see **Architecture** and the repo **CONTRIBUTING.md**.
 
 ## Quick Install
 

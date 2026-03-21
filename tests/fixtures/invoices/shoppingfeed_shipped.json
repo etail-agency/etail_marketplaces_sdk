@@ -1,0 +1,30 @@
+{
+  "id": 200,
+  "reference": "SF-INV",
+  "createdAt": "2025-01-15T12:00:00Z",
+  "status": "shipped",
+  "payment": {
+    "totalAmount": "50.00",
+    "shippingAmount": "5.00",
+    "currency": "EUR",
+    "method": "paypal"
+  },
+  "billingAddress": {
+    "firstName": "A",
+    "lastName": "B",
+    "street": "S1",
+    "postalCode": "1000",
+    "city": "C",
+    "country": "BE"
+  },
+  "shippingAddress": {},
+  "_embedded": { "channel": { "id": 3, "name": "Ch" } },
+  "items": [
+    {
+      "reference": "LINE1",
+      "name": "Product",
+      "quantity": 1,
+      "price": "50.00"
+    }
+  ]
+}

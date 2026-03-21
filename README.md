@@ -116,6 +116,9 @@ uv sync --all-extras
 # Lint
 uv run ruff check .
 
+# Tests (no live APIs; uses pytest + responses)
+uv run pytest
+
 # Serve docs locally
 uv run mkdocs serve
 

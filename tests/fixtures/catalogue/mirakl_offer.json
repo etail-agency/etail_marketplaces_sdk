@@ -1,0 +1,13 @@
+{
+  "shop_sku": "MRK-P",
+  "product_sku": "PLATFORM-REF",
+  "product_title": "Mirakl prod",
+  "product_description": "Desc",
+  "product_brand": "B",
+  "category_code": "CAT",
+  "price": 9.99,
+  "active": true,
+  "product_references": [{ "type": "EAN", "value": "111" }],
+  "state_code": "11",
+  "shipping_deadline": 3
+}

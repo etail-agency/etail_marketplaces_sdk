@@ -1,0 +1,30 @@
+{
+  "order_id": "M-INV-1",
+  "created_date": "2025-01-15T12:00:00Z",
+  "order_state": "SHIPPED",
+  "currency_iso_code": "EUR",
+  "price": "60.00",
+  "shipping_price": "0",
+  "channel": { "label": "Ch" },
+  "customer": {
+    "billing_address": {
+      "firstname": "X",
+      "lastname": "Y",
+      "street_1": "St",
+      "zip_code": "Z",
+      "city": "Ci",
+      "country_iso_code": "FR"
+    },
+    "shipping_address": {}
+  },
+  "order_lines": [
+    {
+      "quantity": 1,
+      "price_unit": "60.00",
+      "price": "60.00",
+      "offer_sku": "SKU-I",
+      "product_title": "Item",
+      "taxes": [{ "rate": 20.0 }]
+    }
+  ]
+}
