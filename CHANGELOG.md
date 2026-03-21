@@ -7,9 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [0.3.1] - 2026-03-12
+
+### Added
+
+- **`docs/order_field_mapping.csv`**, **`docs/order_item_field_mapping.csv`**, **`docs/stock_field_mapping.csv`**: Cross-platform field maps (canonical model ↔ Lengow / ShoppingFeed / ChannelEngine / Mirakl raw payloads).
+
+### Changed
+
+- **Mirakl client**: HTTP 429 handling with `Retry-After` + exponential backoff; inter-page delay for OR11/OF21 pagination; adaptive delay increase after rate-limit events so large offer catalogues can complete.
+
+### Fixed
+
+- **Mirakl mappers**: Removed unused `ProductImage` import (Ruff F401).
+
+### Repository
+
+- **`.gitignore`**: Ignore `.DS_Store` (macOS Finder metadata).
+
 ## [0.3.0] - 2026-03-12
 
-### Added — Catalogue & Stock streams for aggregators + Mirakl spec alignment
+### Added — Catalogue & Stock streams for all aggregators + Mirakl spec alignment
+
+#### Lengow — `CATALOGUE` stream
+
+- **`fetch_catalogue(feed_id, nb_days_to_skip)` / `fetch_raw_catalogue(feed_id, nb_days_to_skip)`**: New public methods on `LengowClient` that call `GET /v1.0/report/export` — the only Lengow endpoint that exposes product data.  The response is a pipe-separated CSV whose column names are feed-specific; `feed_id` can be set once on the constructor or passed per-call.
+- **`map_product()` in `aggregators/lengow/mappers.py`**: Best-effort mapper that resolves SKU, name, EAN, brand, description, category, price, and images from a set of common Lengow export column name patterns (e.g. `sku`/`merchant_sku`/`id_product`, `title`/`name`/`product_title`, etc.).  All unrecognised non-empty columns are preserved as `ProductAttribute` objects.
+- `StreamType.CATALOGUE` added to `LengowClient.supported_streams`.
+- New `feed_id: Optional[int]` constructor parameter on `LengowClient`.
 
 #### ChannelEngine — `CATALOGUE` stream
 

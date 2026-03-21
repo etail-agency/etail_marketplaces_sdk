@@ -1,0 +1,48 @@
+section,canonical_field,type,shoppingfeed_raw_field,channelengine_raw_field,mirakl_raw_field,notes
+,,,,,,API endpoint per platform:
+,,,,,,ShoppingFeed → GET /v1/catalog/{catalogId}/inventory  (_embedded.inventory[])
+,,,,,,ChannelEngine → GET /v2/offer/stock  (Content[])
+,,,,,,Mirakl        → GET /api/offers (OF21)  (offers[])
+,,,,,,
+CANONICAL MAPPING — StockLevel fields,,,,,,
+,sku,str,reference,MerchantProductNo,shop_sku,Merchant's own SKU reference
+,quantity_available,int,quantity,Stock,quantity,Total available stock
+,quantity_reserved,int,X (hardcoded 0),X (hardcoded 0),X (hardcoded 0),No platform exposes reserved/held quantity via these endpoints
+,aggregator_id,int,SDK constant (2),SDK constant (6),X (not set),Set at client level — not in the raw payload
+,marketplace_id,int,X (not set),X (not set),constructor param,Only Mirakl sets this since it is a direct marketplace
+,platform_id,str,id (str cast),X,offer_id (str cast),ShoppingFeed: internal inventory record ID; Mirakl: offer integer ID
+,warehouse_id,str,store_id (constructor),StockLocationId (str cast),X,ShoppingFeed uses store ID as warehouse; CE uses the stock location ID
+,last_updated,datetime,updatedAt,UpdatedAt,X,Mirakl OF21 offers do not expose a per-offer last-updated timestamp
+,,,,,,
+PLATFORM-SPECIFIC FIELDS — no canonical mapping (preserved in StockLevel.raw),,,,,,
+,— (no canonical mapping),—,X,StockLocationName,X,Human-readable stock location name (enriched from GET /v2/stocklocations)
+,— (no canonical mapping),—,X,X,offer_id,Mirakl integer offer ID
+,— (no canonical mapping),—,X,X,active,Offer active flag (true/false)
+,— (no canonical mapping),—,X,X,state_code,Offer condition code (11 = new)
+,— (no canonical mapping),—,X,X,price,Listed offer price
+,— (no canonical mapping),—,X,X,total_price,Price including all taxes
+,— (no canonical mapping),—,X,X,currency_iso_code,
+,— (no canonical mapping),—,X,X,all_prices[],Price variants per channel (price / unit_origin_price / unit_discount_price / discount_start_date / discount_end_date / channel_code)
+,— (no canonical mapping),—,X,X,discount,Discount details
+,— (no canonical mapping),—,X,X,product_sku,Mirakl platform (marketplace) product SKU
+,— (no canonical mapping),—,X,X,product_title,Product name from the marketplace catalogue
+,— (no canonical mapping),—,X,X,product_brand,
+,— (no canonical mapping),—,X,X,product_description,
+,— (no canonical mapping),—,X,X,product_references[],EAN / GTIN references (reference / reference_type)
+,— (no canonical mapping),—,X,X,category_code / category_label,Marketplace category
+,— (no canonical mapping),—,X,X,channels[],List of channel codes this offer is active on (e.g. LRFR)
+,— (no canonical mapping),—,X,X,warehouses[],Per-warehouse stock breakdown (when configured)
+,— (no canonical mapping),—,X,X,leadtime_to_ship,Promised shipping lead time (days)
+,— (no canonical mapping),—,X,X,shipping_deadline,
+,— (no canonical mapping),—,X,X,min_shipping_price / min_shipping_price_additional,
+,— (no canonical mapping),—,X,X,min_shipping_type / min_shipping_zone,
+,— (no canonical mapping),—,X,X,logistic_class,
+,— (no canonical mapping),—,X,X,fulfillment,Fulfillment mode (center code)
+,— (no canonical mapping),—,X,X,applicable_pricing,
+,— (no canonical mapping),—,X,X,allow_quote_requests,
+,— (no canonical mapping),—,X,X,inactivity_reasons[],Reasons the offer is inactive
+,— (no canonical mapping),—,X,X,offer_additional_fields[],Operator-specific custom fields
+,— (no canonical mapping),—,X,X,msrp,Manufacturer's suggested retail price
+,— (no canonical mapping),—,X,X,internal_description,Seller-internal description
+,— (no canonical mapping),—,X,X,price_additional_info,
+,— (no canonical mapping),—,X,X,description,Seller-facing offer description

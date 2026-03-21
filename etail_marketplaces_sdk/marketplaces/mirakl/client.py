@@ -28,6 +28,7 @@ Notes:
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
@@ -228,6 +229,55 @@ class MiraklClient(BaseMarketplace):
     # Private HTTP methods
     # ------------------------------------------------------------------
 
+    def _get_with_retry(
+        self,
+        url: str,
+        params: dict,
+        max_retries: int = 5,
+        label: str = "Mirakl",
+    ) -> tuple[requests.Response, float]:
+        """GET with exponential-backoff retry on HTTP 429.
+
+        Mirakl rate-limits burst requests.  On a 429 we wait for the
+        ``Retry-After`` header value (seconds) if present, otherwise use
+        an exponential backoff starting at 2 s, doubling each attempt.
+
+        Returns:
+            Tuple of (response, suggested_next_delay) — the caller should
+            use the suggested delay before the next request so that the
+            inter-page pace adapts after a rate-limit event.
+
+        Raises:
+            :class:`RateLimitError` when all retries are exhausted.
+            :class:`requests.RequestException` for non-429 HTTP errors.
+        """
+        backoff = 2.0
+        suggested_delay = 0.0
+        for attempt in range(max_retries + 1):
+            response = requests.get(
+                url, headers=self._headers(), params=params, timeout=30
+            )
+            if response.status_code != 429:
+                response.raise_for_status()
+                return response, suggested_delay
+
+            if attempt == max_retries:
+                raise RateLimitError()
+
+            retry_after = response.headers.get("Retry-After")
+            wait = float(retry_after) if retry_after else backoff
+            # After a rate-limit event, recommend a higher inter-page delay
+            # so the next pages don't immediately trigger another 429.
+            suggested_delay = max(suggested_delay, wait / 5)
+            logger.warning(
+                "%s: 429 rate-limited — waiting %.1fs (attempt %d/%d)",
+                label, wait, attempt + 1, max_retries,
+            )
+            time.sleep(wait)
+            backoff = min(backoff * 2, 60.0)
+
+        raise RateLimitError()
+
     def _fetch_raw_orders(self, days_ago: Optional[int] = None) -> list[dict]:
         """Paginate through OR11 ``GET /api/orders`` with offset pagination.
 
@@ -241,22 +291,25 @@ class MiraklClient(BaseMarketplace):
             from_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
             params["start_update_date"] = from_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
+        page_delay = 1.5
+        first_page = True
         while True:
+            if not first_page:
+                time.sleep(page_delay)
+            first_page = False
             try:
-                response = requests.get(
-                    f"{self.base_url}/orders",
-                    headers=self._headers(),
-                    params=params,
-                    timeout=30,
+                response, suggested = self._get_with_retry(
+                    f"{self.base_url}/orders", params=params, label="Mirakl fetch_orders"
                 )
-                if response.status_code == 429:
-                    raise RateLimitError()
-                response.raise_for_status()
+                if suggested > page_delay:
+                    page_delay = suggested
+                    logger.info("Mirakl fetch_orders: adjusting inter-page delay to %.1fs", page_delay)
                 data = response.json()
                 batch = data.get("orders") or []
                 orders.extend(batch)
 
                 total = data.get("total_count") or 0
+                logger.debug("Mirakl orders: fetched %d / %d", len(orders), total)
                 if len(orders) >= total or not batch:
                     break
                 params["offset"] = len(orders)
@@ -274,28 +327,34 @@ class MiraklClient(BaseMarketplace):
         Spec: OF21 uses ``max`` (≤ 100) + ``offset`` pagination, returning
         ``{ offers: [...], total_count: int }``.  SKU filter uses the ``sku``
         param (the offer's ``shop_sku``).
+
+        A 1-second delay is inserted between pages to stay within Mirakl's
+        default rate limit.  On a 429 the retry helper backs off automatically.
         """
         offers: list[dict] = []
         params: dict = {"max": 100, "offset": 0}
         if skus:
             params["sku"] = ",".join(skus)
 
+        page_delay = 1.5
+        first_page = True
         while True:
+            if not first_page:
+                time.sleep(page_delay)
+            first_page = False
             try:
-                response = requests.get(
-                    f"{self.base_url}/offers",
-                    headers=self._headers(),
-                    params=params,
-                    timeout=30,
+                response, suggested = self._get_with_retry(
+                    f"{self.base_url}/offers", params=params, label="Mirakl fetch_offers"
                 )
-                if response.status_code == 429:
-                    raise RateLimitError()
-                response.raise_for_status()
+                if suggested > page_delay:
+                    page_delay = suggested
+                    logger.info("Mirakl fetch_offers: adjusting inter-page delay to %.1fs", page_delay)
                 data = response.json()
                 batch = data.get("offers") or []
                 offers.extend(batch)
 
                 total = data.get("total_count") or 0
+                logger.debug("Mirakl offers: fetched %d / %d", len(offers), total)
                 if len(offers) >= total or not batch:
                     break
                 params["offset"] = len(offers)
