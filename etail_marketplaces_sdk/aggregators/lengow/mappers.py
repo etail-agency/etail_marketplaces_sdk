@@ -4,6 +4,10 @@ Lengow mappers — raw API response dict → canonical SDK models.
 This is the ONLY file that should be updated when the Lengow OpenAPI spec changes.
 Cross-reference with: specs/aggregators/lengow/openapi.json
 
+Catalogue source: GET /v1.0/report/export (pipe-separated CSV).
+Column names are feed-specific; map_product() uses a best-effort lookup over
+common Lengow export field name patterns.
+
 Lengow API reference: https://developers.lengow.com/
 """
 
@@ -18,6 +22,7 @@ from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
+from etail_marketplaces_sdk.models.product import Product, ProductAttribute, ProductImage
 
 # ---------------------------------------------------------------------------
 # Marketplace → internal ID + VAT rate mapping
@@ -219,6 +224,92 @@ def map_invoice(
         invoice_status="paid",
         currency=currency,
         payment_plan_commission=Decimal("0"),
+    )
+
+
+def _pick(row: dict[str, Any], *candidates: str) -> Optional[str]:
+    """Return the first non-empty value matching any candidate key (case-insensitive)."""
+    lower = {k.lower(): v for k, v in row.items()}
+    for c in candidates:
+        val = lower.get(c.lower())
+        if val not in (None, "", "N/A", "n/a"):
+            return str(val)
+    return None
+
+
+def map_product(
+    row: dict[str, Any],
+    aggregator_id: int,
+    marketplace_id: Optional[int],
+) -> Product:
+    """Map a Lengow report CSV row (pipe-separated) to a canonical :class:`Product`.
+
+    Lengow's ``GET /v1.0/report/export`` returns feed-specific CSV columns.
+    This mapper performs a best-effort lookup over common export field name
+    patterns.  The original row is always preserved in ``product.raw``.
+
+    Args:
+        row:            A dict built from one CSV row (keys are header columns).
+        aggregator_id:  Internal aggregator identifier.
+        marketplace_id: Internal marketplace identifier (optional).
+
+    Returns:
+        :class:`~etail_marketplaces_sdk.models.product.Product`
+    """
+    sku = _pick(row, "sku", "merchant_sku", "id_product", "product_id", "reference", "id") or ""
+    name = _pick(row, "name", "title", "product_title", "product_name", "nom") or ""
+    ean = _pick(row, "ean", "ean13", "gtin", "barcode", "upc", "isbn")
+    brand = _pick(row, "brand", "brand_name", "product_brand", "marque")
+    description = _pick(row, "description", "product_description", "short_description")
+    category = _pick(row, "category", "product_category", "google_product_category", "categorie")
+
+    price_raw = _pick(row, "price", "selling_price", "product_price", "prix")
+    try:
+        price = Decimal(str(price_raw).replace(",", ".")) if price_raw else None
+    except Exception:
+        price = None
+
+    # Images — try common column patterns up to 5 extra slots
+    images: list[ProductImage] = []
+    for pos, key in enumerate(
+        ["image", "image_url", "image1", "url_image", "image2", "image3", "image4", "image5"],
+        start=0,
+    ):
+        url = _pick(row, key)
+        if url and url.startswith("http"):
+            images.append(ProductImage(url=url, position=pos))
+
+    # Remaining non-empty columns become attributes
+    known = {
+        "sku", "merchant_sku", "id_product", "product_id", "reference", "id",
+        "name", "title", "product_title", "product_name", "nom",
+        "ean", "ean13", "gtin", "barcode", "upc", "isbn",
+        "brand", "brand_name", "product_brand", "marque",
+        "description", "product_description", "short_description",
+        "category", "product_category", "google_product_category", "categorie",
+        "price", "selling_price", "product_price", "prix",
+        "image", "image_url", "image1", "url_image",
+        "image2", "image3", "image4", "image5",
+    }
+    attributes = [
+        ProductAttribute(name=k, value=str(v))
+        for k, v in row.items()
+        if k.lower() not in known and v not in (None, "", "N/A", "n/a")
+    ]
+
+    return Product(
+        sku=sku,
+        name=name,
+        aggregator_id=aggregator_id,
+        marketplace_id=marketplace_id,
+        ean=ean,
+        description=description,
+        price_incl_vat=price,
+        brand=brand,
+        category=category,
+        images=images,
+        attributes=attributes,
+        raw=row,
     )
 
 

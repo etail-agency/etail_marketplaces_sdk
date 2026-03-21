@@ -1,0 +1,128 @@
+section,canonical_field,type,lengow_raw_field,shoppingfeed_raw_field,channelengine_raw_field,mirakl_raw_field,notes
+,,,,,,
+ORDER — top-level,,,,,,
+,aggregator_order_id,str,marketplace_order_id,id (cast to str),ChannelOrderNo,order_id,Platform's own order identifier
+,marketplace_order_id,str,marketplace_order_id,reference,MerchantOrderNo (→ ChannelOrderNo),order_id,Lengow and Mirakl share the same value for both IDs; CE separates channel vs merchant
+,aggregator_id,int,SDK constant (3),SDK constant (2),SDK constant (6),SDK constant (0),Set at client level — not present in raw payload
+,marketplace_id,int,LENGOW_MARKETPLACE_MAPPING lookup,_embedded.channel.id / channelId,constructor param,constructor param,Resolved from a lookup table (Lengow) or set once on the client
+,brand_id,int,brand.id (constructor),brand.id (constructor),brand.id (constructor),brand.id (constructor),Always injected from the Brand object — not in the payload
+,order_date,datetime,marketplace_order_date,createdAt,CreatedAt,created_date,
+,status,str,lengow_status,status,Status,order_state,Each platform uses its own status vocabulary
+,eur_amount_excl_vat,Decimal,X (hardcoded 0),X (hardcoded 0),TotalExclVat,X (hardcoded 0),Only ChannelEngine /v2/orders provides an excl-VAT total directly
+,eur_amount_incl_vat,Decimal,total_order,payment.totalAmount,TotalInclVat,price,
+,eur_shipping_fee_excl_vat,Decimal,X (hardcoded 0),X (hardcoded 0),ShippingCostsExclVat,X (hardcoded 0),Only ChannelEngine provides excl-VAT shipping directly
+,eur_shipping_fee_incl_vat,Decimal,shipping,payment.shippingAmount,ShippingCostsInclVat,shipping_price,
+,original_currency,str,currency (or original_currency),payment.currency,CurrencyCode,currency_iso_code,
+,original_amount,Decimal,original_total_order,payment.totalAmount (same),OriginalTotalInclVat (→ TotalInclVat),price (same as EUR),Mirakl does not provide original currency amount separately
+,original_shipping_fee,Decimal,original_shipping,payment.shippingAmount (same),OriginalShippingCostsInclVat (→ ShippingCostsInclVat),shipping_price (same as EUR),
+,payment_method,str,payments[0].type,X (order) / payment.method (invoice),PaymentMethod,payment_type,ShoppingFeed payment.method is only used in invoice mapping
+,vat_rate,Decimal,X,X,X,X,Per-line only; no order-level VAT rate on any platform
+,shipping_vat_rate,Decimal,X,X,ShippingCostsVatRate,X,Only available in ChannelEngine raw payload
+,oms,str,X,X,X,X,SDK-internal field — never set by any mapper
+,oms_order_id,str,X,X,X,X,SDK-internal field — never set by any mapper
+,created_date,datetime,marketplace_order_date,createdAt,CreatedAt,created_date,Mapped same as order_date
+,updated_date,datetime,updated_at,updatedAt,UpdatedAt,last_updated_date,
+,id,int,X,X,X,X,Internal DB auto-increment — not populated by any mapper
+,,,,,,
+ORDER ITEM — (items / packages[].cart / Lines / order_lines),,,,,,
+,reference,str,packages[].cart[].marketplace_product_id,items[].reference,Lines[].MerchantProductNo (→ ChannelProductNo),order_lines[].offer_sku,Platform product identifier
+,name,str,packages[].cart[].title,items[].name,Lines[].Description,order_lines[].product_title,
+,quantity,int,packages[].cart[].quantity,items[].quantity,Lines[].Quantity,order_lines[].quantity,
+,unit_price_excl_vat,Decimal,X (hardcoded 0),X (hardcoded 0),Lines[].UnitPriceExclVat,X (hardcoded 0),Only ChannelEngine /v2/orders provides this directly
+,unit_price_incl_vat,Decimal,packages[].cart[].amount,items[].price,Lines[].UnitPriceInclVat,order_lines[].price_unit,
+,vat_rate,Decimal,X (hardcoded 0),X (hardcoded 0),Lines[].VatRate,order_lines[].taxes[0].rate,Mirakl stores VAT in a taxes array on the line
+,total_price_excl_vat,Decimal,X (hardcoded 0),X (hardcoded 0),Lines[].LineTotalExclVat,X (hardcoded 0),
+,total_price_incl_vat,Decimal,packages[].cart[].amount × quantity,items[].price × quantity,Lines[].LineTotalInclVat,order_lines[].price,
+,sku,str,packages[].cart[].merchant_product_id.id,items[].reference,Lines[].MerchantProductNo,order_lines[].offer_sku,Merchant's own SKU
+,ean,str,X,X,Lines[].Gtin,X,Only ChannelEngine /v2/orders provides GTIN on line items
+,,,,,,
+ADDRESS — billing (Address model),,,,,,
+,name,str,"billing_address.full_name (→ first_name + last_name + company)","billingAddress.firstName + lastName (+ company)","BillingAddress.FirstName + LastName (+ CompanyName)","customer.billing_address.firstname + lastname (+ company)",
+,address_line1,str,billing_address.first_line,billingAddress.street,BillingAddress.Line1,customer.billing_address.street_1,
+,address_line2,str,billing_address.second_line / complement,billingAddress.street2,X,customer.billing_address.street_2,ChannelEngine billing address has no line2 in the orders API response
+,postal_code,str,billing_address.zipcode,billingAddress.postalCode,BillingAddress.ZipCode,customer.billing_address.zip_code,
+,city,str,billing_address.city,billingAddress.city,BillingAddress.City,customer.billing_address.city,
+,country,str,billing_address.common_country_iso_a2,billingAddress.country,BillingAddress.CountryIso,customer.billing_address.country_iso_code,ISO 2-letter (Lengow/SF/CE) vs ISO 3-letter (Mirakl)
+,phone,str,"billing_address.phone_mobile / phone_office / phone_home","billingAddress.phone / mobilePhone",X (not in raw CE billing block),customer.billing_address.phone / phone_secondary,
+,email,str,billing_address.email,billingAddress.email,X,customer.billing_address.email,
+,,,,,,
+ADDRESS — shipping (Address model),,,,,,
+,name,str,"packages[0].delivery.full_name (→ first+last+company)","shippingAddress.firstName + lastName","ShippingAddress.FirstName + LastName","customer.shipping_address.lastname (combined)",Mirakl shipping has only lastname (full name combined by platform)
+,address_line1,str,packages[0].delivery.first_line,shippingAddress.street,ShippingAddress.Line1,customer.shipping_address.street_1,
+,address_line2,str,packages[0].delivery.second_line / complement,shippingAddress.street2,X,customer.shipping_address.street_2,
+,postal_code,str,packages[0].delivery.zipcode,shippingAddress.postalCode,ShippingAddress.ZipCode,customer.shipping_address.zip_code,
+,city,str,packages[0].delivery.city,shippingAddress.city,ShippingAddress.City,customer.shipping_address.city,
+,country,str,packages[0].delivery.common_country_iso_a2,shippingAddress.country,ShippingAddress.CountryIso,customer.shipping_address.country_iso_code,
+,phone,str,"packages[0].delivery.phone_mobile / phone_office","shippingAddress.phone / mobilePhone",X,customer.shipping_address.phone / phone_secondary,
+,email,str,packages[0].delivery.email,shippingAddress.email,X,X,
+,,,,,,
+PLATFORM-SPECIFIC FIELDS — no canonical mapping (preserved in .raw),,,,,,
+,— (no canonical mapping),—,marketplace,X,X,X,Lengow marketplace slug (e.g. zalando_fr)
+,— (no canonical mapping),—,account_id,X,X,X,Lengow internal account ID
+,— (no canonical mapping),—,marketplace_country_iso2,X,X,X,
+,— (no canonical mapping),—,merchant_order_id,X,X,X,Lengow merchant-assigned order ID (separate from marketplace_order_id)
+,— (no canonical mapping),—,marketplace_status,X,X,X,Raw marketplace status (before Lengow normalises to lengow_status)
+,— (no canonical mapping),—,marketplace_customer_id,X,X,X,
+,— (no canonical mapping),—,total_tax,X,X,X,Lengow order tax total
+,— (no canonical mapping),—,discount,X,X,X,Lengow discount amount
+,— (no canonical mapping),—,commission,X,X,X,Lengow commission amount
+,— (no canonical mapping),—,invoice_number,X,X,X,Lengow marketplace-issued invoice number
+,— (no canonical mapping),—,packages,X,X,X,Full package/shipment structure (contains cart items and delivery address)
+,— (no canonical mapping),—,contact_address,X,X,X,Lengow contact address (separate from billing/delivery)
+,— (no canonical mapping),—,documents,X,X,X,Links to Lengow-hosted documents
+,— (no canonical mapping),—,order_meta,X,X,X,
+,— (no canonical mapping),—,anonymized,X,X,X,Lengow GDPR anonymisation flag
+,— (no canonical mapping),—,original_total_buyer_amount,X,X,X,
+,— (no canonical mapping),—,original_buyer_currency,X,X,X,
+,— (no canonical mapping),—,X,storeId,X,X,ShoppingFeed internal store ID
+,— (no canonical mapping),—,X,storeReference,X,X,Store-specific order reference
+,— (no canonical mapping),—,X,isTest,X,X,
+,— (no canonical mapping),—,X,acknowledgedAt,X,X,
+,— (no canonical mapping),—,X,anonymized,X,X,
+,— (no canonical mapping),—,X,additionalFields,X,X,Custom fields per channel
+,— (no canonical mapping),—,X,latestShipDate,X,X,
+,— (no canonical mapping),—,X,errors,X,X,
+,— (no canonical mapping),—,X,itemsReferencesAliases,X,X,
+,— (no canonical mapping),—,X,fulfilledBy,X,X,
+,— (no canonical mapping),—,X,commission,X,X,Commission breakdown object
+,— (no canonical mapping),—,X,_embedded.channel,X,X,Channel metadata (id / name / logo)
+,— (no canonical mapping),—,X,X,Id,X,ChannelEngine internal order integer ID
+,— (no canonical mapping),—,X,X,ChannelName / ChannelId,X,Channel name and ID
+,— (no canonical mapping),—,X,X,GlobalChannelName / GlobalChannelId,X,
+,— (no canonical mapping),—,X,X,CommercialOrderNo,X,CE commercial order number (distinct from ChannelOrderNo and MerchantOrderNo)
+,— (no canonical mapping),—,X,X,IsBusinessOrder / IsTest,X,
+,— (no canonical mapping),—,X,X,AcknowledgedDate / ClosedAt,X,
+,— (no canonical mapping),—,X,X,MerchantComment,X,
+,— (no canonical mapping),—,X,X,SubTotalInclVat / SubTotalVat / TotalVat,X,Sub-totals and VAT breakdowns
+,— (no canonical mapping),—,X,X,SubTotalFee / OrderFee / TotalFee,X,Fee breakdown
+,— (no canonical mapping),—,X,X,BundleOrderLines,X,Bundle order lines (separate from Lines)
+,— (no canonical mapping),—,X,X,LanguageCode,X,
+,— (no canonical mapping),—,X,X,CompanyRegistrationNo / VatNo,X,B2B fields
+,— (no canonical mapping),—,X,X,PaymentReferenceNo,X,
+,— (no canonical mapping),—,X,X,ChannelCustomerNo,X,
+,— (no canonical mapping),—,X,X,ExtraData,X,Key-value extra metadata
+,— (no canonical mapping),—,X,X,X,commercial_id,Mirakl commercial/channel order ID (e.g. LRFR20240923…)
+,— (no canonical mapping),—,X,X,X,channel (code / label),Marketplace channel metadata
+,— (no canonical mapping),—,X,X,X,acceptance_decision_date,
+,— (no canonical mapping),—,X,X,X,can_cancel / can_shop_ship,
+,— (no canonical mapping),—,X,X,X,customer_debited_date,
+,— (no canonical mapping),—,X,X,X,customer_notification_email,
+,— (no canonical mapping),—,X,X,X,delivery_date,
+,— (no canonical mapping),—,X,X,X,fulfillment (center.code),
+,— (no canonical mapping),—,X,X,X,fully_refunded / has_incident / has_invoice,
+,— (no canonical mapping),—,X,X,X,leadtime_to_ship,
+,— (no canonical mapping),—,X,X,X,order_additional_fields,Operator-specific custom fields
+,— (no canonical mapping),—,X,X,X,order_refunds,
+,— (no canonical mapping),—,X,X,X,order_state_reason_code / order_state_reason_label,
+,— (no canonical mapping),—,X,X,X,order_tax_mode / order_taxes,
+,— (no canonical mapping),—,X,X,X,payment_workflow,
+,— (no canonical mapping),—,X,X,X,promotions,
+,— (no canonical mapping),—,X,X,X,quote_id,
+,— (no canonical mapping),—,X,X,X,shipping_carrier_code / shipping_carrier_standard_code,
+,— (no canonical mapping),—,X,X,X,shipping_company,
+,— (no canonical mapping),—,X,X,X,shipping_deadline,
+,— (no canonical mapping),—,X,X,X,shipping_pudo_id,
+,— (no canonical mapping),—,X,X,X,shipping_tracking / shipping_tracking_url,
+,— (no canonical mapping),—,X,X,X,shipping_type_code / shipping_type_label,
+,— (no canonical mapping),—,X,X,X,shipping_zone_code / shipping_zone_label,
+,— (no canonical mapping),—,X,X,X,total_commission,

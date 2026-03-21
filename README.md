@@ -17,7 +17,7 @@ Fetch, normalise, and sink data streams (orders, stock, catalogue, shipments, re
 
 | Platform | Orders | Invoices | Shipments | Stock | Catalogue |
 |---|:---:|:---:|:---:|:---:|:---:|
-| [Lengow](https://www.lengow.com) | ✅ | ✅ | | | |
+| [Lengow](https://www.lengow.com) | ✅ | ✅ | | | ✅ |
 | [ShoppingFeed](https://www.shopping-feed.com) | ✅ | ✅ | | ✅ | ✅ |
 | [ChannelEngine](https://www.channelengine.com) | ✅ | ✅ | ✅ | ✅ | ✅ |
 

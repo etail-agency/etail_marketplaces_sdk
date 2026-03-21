@@ -35,6 +35,39 @@ All clients extend `BaseAggregator` and share the same public interface:
 
 ## Lengow
 
+### Catalogue stream
+
+Lengow does not expose a standard `GET /products` endpoint.  The only source for product data is `GET /v1.0/report/export`, which returns the last marketplace report (pipe-separated CSV) after product transmission.  A `feed_id` is required.
+
+!!! note "Feed-specific columns"
+    CSV column names depend on your Lengow feed template.  `fetch_raw_catalogue()` always returns the raw rows so you can inspect the actual columns.  `fetch_catalogue()` performs a best-effort mapping over common field name patterns (`sku`/`merchant_sku`, `title`/`name`, `ean`/`gtin`, etc.).  Unrecognised columns are preserved as `ProductAttribute` objects.
+
+```python
+from etail_marketplaces_sdk.aggregators.lengow.client import LengowClient
+from etail_marketplaces_sdk.core.credentials import LengowCredentials
+from etail_marketplaces_sdk.models.brand import Brand
+
+brand = Brand(id=1, name="My Brand")
+
+client = LengowClient(
+    credentials=LengowCredentials(
+        access_token="<access-token>",
+        secret="<secret>",
+    ),
+    brand=brand,
+    feed_id=12345,          # set once on the constructor …
+)
+
+# … or pass feed_id directly to each call
+products = client.fetch_catalogue()                         # uses constructor feed_id
+products = client.fetch_catalogue(feed_id=12345)            # explicit override
+products = client.fetch_catalogue(nb_days_to_skip=1)        # yesterday's report
+
+# Inspect raw CSV rows first to see actual column names
+raw = client.fetch_raw_catalogue()
+print(list(raw[0].keys()))
+```
+
 ::: etail_marketplaces_sdk.aggregators.lengow.client
 
 ---
