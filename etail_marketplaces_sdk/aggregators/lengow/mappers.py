@@ -18,6 +18,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
+from etail_marketplaces_sdk.core.decimal_utils import optional_decimal
 from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
@@ -143,6 +144,8 @@ def map_order(
         shipping_address=_map_address(delivery) if delivery and delivery != billing else None,
         created_date=order_date,
         updated_date=updated_at,
+        marketplace_name=raw.get("marketplace"),
+        commission=optional_decimal(raw.get("commission")),
         raw=raw,
     )
 

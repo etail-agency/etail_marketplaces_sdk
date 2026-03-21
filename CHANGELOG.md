@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [Unreleased]
+
+### Added
+
+- **`Order.marketplace_name`** and **`Order.commission`**: Optional canonical fields populated from platform payloads where available (`Lengow`, `ShoppingFeed`, `ChannelEngine` orders + shipments, `Mirakl`, `ManoMano`).
+- **`core.decimal_utils.optional_decimal`**: Shared safe parsing helper for mapper numeric fields.
+
 ## [0.3.1] - 2026-03-12
 
 ### Added

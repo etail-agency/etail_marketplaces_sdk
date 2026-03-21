@@ -54,6 +54,9 @@ class Order:
 
     `raw` always holds the unmodified platform payload for traceability and
     to allow downstream consumers to access fields the SDK doesn't map.
+
+    Optional ``marketplace_name`` and ``commission`` are populated when the
+    upstream API exposes them; otherwise they stay ``None``.
     """
 
     aggregator_order_id: str
@@ -81,6 +84,10 @@ class Order:
     created_date: Optional[datetime] = None
     updated_date: Optional[datetime] = None
     id: Optional[int] = None
+    # Human-readable marketplace label (e.g. channel name, operator slug).
+    marketplace_name: Optional[str] = None
+    # Order-level marketplace / aggregator commission when exposed by the platform.
+    commission: Optional[Decimal] = None
     raw: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -89,6 +96,7 @@ class Order:
             "brand_id": self.brand_id,
             "aggregator_id": self.aggregator_id,
             "marketplace_id": self.marketplace_id,
+            "marketplace_name": self.marketplace_name,
             "aggregator_order_id": self.aggregator_order_id,
             "marketplace_order_id": self.marketplace_order_id,
             "order_date": self.order_date.isoformat() if self.order_date else None,
@@ -100,6 +108,7 @@ class Order:
             "original_currency": self.original_currency,
             "original_amount": str(self.original_amount),
             "original_shipping_fee": str(self.original_shipping_fee),
+            "commission": str(self.commission) if self.commission is not None else None,
             "vat_rate": str(self.vat_rate) if self.vat_rate is not None else None,
             "shipping_vat_rate": str(self.shipping_vat_rate) if self.shipping_vat_rate is not None else None,
             "payment_method": self.payment_method,

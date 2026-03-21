@@ -14,6 +14,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
+from etail_marketplaces_sdk.core.decimal_utils import optional_decimal
 from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
@@ -21,6 +22,35 @@ from etail_marketplaces_sdk.models.order import Order, OrderItem
 
 # ManoMano statuses that indicate the order has been fulfilled
 SHIPPED_STATUSES = {"SHIPPED", "DELIVERED", "COMPLETED"}
+
+
+def _manomano_marketplace_name(raw: dict[str, Any]) -> Optional[str]:
+    """Human-readable channel / marketplace label when present in the payload."""
+    for key in ("marketplace_name", "channel_name", "sales_channel", "channel_label"):
+        v = raw.get(key)
+        if v:
+            return str(v)
+    ch = raw.get("channel")
+    if isinstance(ch, dict):
+        return ch.get("name") or ch.get("label") or ch.get("code")
+    return None
+
+
+def _manomano_order_commission(raw: dict[str, Any]) -> Optional[Decimal]:
+    """Order-level ``commission`` or sum of ``products[].commission`` / ``commission_amount``."""
+    top = optional_decimal(raw.get("commission"))
+    if top is not None:
+        return top
+    total = Decimal("0")
+    found = False
+    for p in raw.get("products", []) or []:
+        for key in ("commission", "commission_amount", "marketplace_commission"):
+            c = optional_decimal(p.get(key))
+            if c is not None:
+                total += c
+                found = True
+                break
+    return total if found else None
 
 
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
@@ -90,6 +120,8 @@ def map_order(
         shipping_address=_map_address(shipping) if shipping and shipping != billing else None,
         created_date=created_at,
         updated_date=updated_at,
+        marketplace_name=_manomano_marketplace_name(raw),
+        commission=_manomano_order_commission(raw),
         raw=raw,
     )
 

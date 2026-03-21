@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
+from etail_marketplaces_sdk.core.decimal_utils import optional_decimal
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
 from etail_marketplaces_sdk.models.order import Order, OrderItem
@@ -41,6 +42,36 @@ logger = logging.getLogger(__name__)
 # Statuses from /v2/orders that represent a fully shipped order and should
 # trigger invoice creation.
 _SHIPPED_STATUSES = {"SHIPPED", "CLOSED"}
+
+
+def _ce_orders_api_marketplace_name(order: dict[str, Any]) -> Optional[str]:
+    """``ChannelName`` (tenant-specific) or ``GlobalChannelName`` from ``GET /v2/orders``."""
+    return order.get("ChannelName") or order.get("GlobalChannelName")
+
+
+def _ce_sum_line_fee_fixed(lines: Optional[list[dict[str, Any]]]) -> Optional[Decimal]:
+    """Sum ``FeeFixed`` from order/shipment lines (on line or nested ``OrderLine``)."""
+    if not lines:
+        return None
+    total = Decimal("0")
+    saw = False
+    for line in lines:
+        fee = line.get("FeeFixed")
+        if fee is None:
+            ol = line.get("OrderLine") or {}
+            fee = ol.get("FeeFixed")
+        d = optional_decimal(fee)
+        if d is not None:
+            total += d
+            saw = True
+    return total if saw else None
+
+
+def _ce_orders_api_commission(order: dict[str, Any]) -> Optional[Decimal]:
+    """Prefer header ``TotalFee``; otherwise sum per-line ``FeeFixed``."""
+    if order.get("TotalFee") is not None:
+        return optional_decimal(order.get("TotalFee"))
+    return _ce_sum_line_fee_fixed(order.get("Lines"))
 
 
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
@@ -206,6 +237,8 @@ def map_order(
         items=items,
         created_date=order_date,
         updated_date=updated_at,
+        marketplace_name=shipment.get("ChannelName") or shipment.get("GlobalChannelName"),
+        commission=_ce_sum_line_fee_fixed(lines),
         raw=shipment,
     )
 
@@ -438,6 +471,8 @@ def map_order_from_orders_api(
         payment_method=order.get("PaymentMethod"),
         created_date=order_date,
         updated_date=updated_at,
+        marketplace_name=_ce_orders_api_marketplace_name(order),
+        commission=_ce_orders_api_commission(order),
         raw=order,
     )
 
