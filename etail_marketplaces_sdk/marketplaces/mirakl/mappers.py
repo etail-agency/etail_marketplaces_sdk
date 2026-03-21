@@ -169,6 +169,10 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
         taxes = line.get("taxes") or []
         vat_rate = Decimal(str(taxes[0].get("rate") or "0")) if taxes else Decimal("0")
 
+        line_commission = optional_decimal(line.get("total_commission"))
+        if line_commission is None:
+            line_commission = optional_decimal(line.get("commission_fee"))
+
         items.append(
             OrderItem(
                 reference=line.get("offer_sku") or "",
@@ -180,6 +184,7 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
                 total_price_excl_vat=Decimal("0"),
                 total_price_incl_vat=line_total if line_total else unit_incl * quantity,
                 sku=line.get("offer_sku") or "",
+                commission=line_commission,
             )
         )
     return items

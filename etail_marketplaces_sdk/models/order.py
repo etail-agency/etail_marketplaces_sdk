@@ -31,6 +31,8 @@ class OrderItem:
     total_price_incl_vat: Decimal
     sku: Optional[str] = None
     ean: Optional[str] = None
+    # Line-level marketplace / channel commission when the platform exposes it.
+    commission: Optional[Decimal] = None
 
     def to_dict(self) -> dict:
         return {
@@ -44,6 +46,7 @@ class OrderItem:
             "total_price_incl_vat": str(self.total_price_incl_vat),
             "sku": self.sku,
             "ean": self.ean,
+            "commission": str(self.commission) if self.commission is not None else None,
         }
 
 

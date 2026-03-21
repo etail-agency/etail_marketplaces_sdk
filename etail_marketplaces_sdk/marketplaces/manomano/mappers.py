@@ -36,6 +36,14 @@ def _manomano_marketplace_name(raw: dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _manomano_line_commission(product: dict[str, Any]) -> Optional[Decimal]:
+    for key in ("commission", "commission_amount", "marketplace_commission"):
+        c = optional_decimal(product.get(key))
+        if c is not None:
+            return c
+    return None
+
+
 def _manomano_order_commission(raw: dict[str, Any]) -> Optional[Decimal]:
     """Order-level ``commission`` or sum of ``products[].commission`` / ``commission_amount``."""
     top = optional_decimal(raw.get("commission"))
@@ -44,12 +52,10 @@ def _manomano_order_commission(raw: dict[str, Any]) -> Optional[Decimal]:
     total = Decimal("0")
     found = False
     for p in raw.get("products", []) or []:
-        for key in ("commission", "commission_amount", "marketplace_commission"):
-            c = optional_decimal(p.get(key))
-            if c is not None:
-                total += c
-                found = True
-                break
+        c = _manomano_line_commission(p)
+        if c is not None:
+            total += c
+            found = True
     return total if found else None
 
 
@@ -144,6 +150,7 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
                 total_price_excl_vat=unit_excl * quantity,
                 total_price_incl_vat=unit_incl * quantity,
                 sku=p.get("seller_sku", ""),
+                commission=_manomano_line_commission(p),
             )
         )
     return items

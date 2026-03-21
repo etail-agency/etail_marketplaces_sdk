@@ -216,6 +216,7 @@ def map_order(
                 total_price_excl_vat=Decimal("0"),
                 total_price_incl_vat=line_total,
                 sku=line.get("MerchantProductNo", "") or line.get("ChannelProductNo", ""),
+                commission=optional_decimal(order_line.get("FeeFixed")),
             )
         )
 
@@ -447,6 +448,7 @@ def map_order_from_orders_api(
                 total_price_incl_vat=Decimal(str(line.get("LineTotalInclVat", 0))),
                 sku=line.get("MerchantProductNo") or line.get("ChannelProductNo") or "",
                 ean=line.get("Gtin"),
+                commission=optional_decimal(line.get("FeeFixed")),
             )
         )
 

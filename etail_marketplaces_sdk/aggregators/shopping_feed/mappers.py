@@ -236,6 +236,7 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
                 total_price_excl_vat=Decimal("0"),
                 total_price_incl_vat=price_incl * quantity,
                 sku=item.get("reference", ""),
+                commission=optional_decimal(item.get("commission")),
             )
         )
     return items
