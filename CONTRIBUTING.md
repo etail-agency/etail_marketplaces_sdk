@@ -31,6 +31,7 @@ Verify everything is working:
 
 ```bash
 uv run ruff check .      # linter
+uv run pytest            # tests (fixtures + mocked HTTP; no live APIs)
 uv run mkdocs serve      # docs preview at http://127.0.0.1:8000
 ```
 
@@ -50,6 +51,7 @@ uv run mkdocs serve      # docs preview at http://127.0.0.1:8000
 - Type-annotate every parameter and return value.  Missing annotations will fail `mkdocs build --strict`.
 - Each platform's mapper (`mappers.py`) is the **only** file that should change when a platform's API spec changes.  Keep HTTP logic in `client.py` and field mapping in `mappers.py`.
 - The `raw` field on every canonical model must always hold the unmodified platform payload.
+- When you change a mapper, add or adjust a **small JSON fixture** under `tests/fixtures/` and a focused test in `tests/test_*_mappers.py` so behaviour stays reviewable.
 
 ---
 
@@ -94,8 +96,9 @@ git checkout -b feature/my-feature
 
 # 2. Make your changes
 
-# 3. Lint before committing
+# 3. Lint and test before committing
 uv run ruff check .
+uv run pytest
 
 # 4. Commit with a conventional commit message
 #    feat:     new feature
@@ -113,7 +116,7 @@ git push -u origin feature/my-feature
 CI runs automatically on every PR:
 
 - `ruff check .` — lint
-- (tests, when added) `pytest`
+- `pytest` — mapper + mocked client tests
 
 Docs are deployed to GitHub Pages automatically on every merge to `main`.
 

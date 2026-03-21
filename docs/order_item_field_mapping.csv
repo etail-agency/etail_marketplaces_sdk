@@ -12,6 +12,7 @@ CANONICAL MAPPING — OrderItem fields,,,,,,
 ,total_price_incl_vat,Decimal,amount × quantity,price × quantity,LineTotalInclVat,price (line total),Lengow and ShoppingFeed require client-side multiplication; CE and Mirakl have it directly
 ,sku,str,merchant_product_id.id (or merchant_product_id if string),reference,MerchantProductNo,offer_sku,Merchant's own SKU
 ,ean,str,X,X,Gtin,X,Only ChannelEngine exposes GTIN on the line item
+,commission,Decimal,commission,commission,FeeFixed (on line; shipments: OrderLine.FeeFixed),total_commission (→ commission_fee),ManoMano: commission / commission_amount / marketplace_commission on each product
 ,,,,,,
 PLATFORM-SPECIFIC LINE ITEM FIELDS — no canonical mapping (preserved in Order.raw),,,,,,
 ,— (no canonical mapping),—,id,id,Id,order_line_id,Internal line ID on each platform
@@ -44,12 +45,8 @@ PLATFORM-SPECIFIC LINE ITEM FIELDS — no canonical mapping (preserved in Order.
 ,— (no canonical mapping),—,original_discount,X,X,X,
 ,— (no canonical mapping),—,original_shipping,X,X,X,
 ,— (no canonical mapping),—,original_buyer_amount / original_buyer_tax,X,X,X,
-,— (no canonical mapping),—,X,commission,X,commission_fee,Commission amount charged on the line
-,— (no canonical mapping),—,X,X,X,commission_rate_vat,
-,— (no canonical mapping),—,X,X,X,commission_vat,
-,— (no canonical mapping),—,X,X,X,commission_taxes[],
-,— (no canonical mapping),—,X,X,X,total_commission,
-,— (no canonical mapping),—,X,X,FeeFixed / FeeRate,X,ChannelEngine fixed fee and rate fee on the line
+,— (no canonical mapping),—,X,X,X,commission_rate_vat / commission_vat / commission_taxes[],Mirakl commission tax breakdown (canonical line commission uses total_commission or commission_fee)
+,— (no canonical mapping),—,X,X,FeeRate,X,ChannelEngine percentage fee on the line (FeeFixed is mapped to OrderItem.commission)
 ,— (no canonical mapping),—,X,X,OriginalFeeFixed,X,
 ,— (no canonical mapping),—,X,X,X,promotions,Mirakl promotions applied to the line
 ,— (no canonical mapping),—,X,X,X,can_refund,

@@ -1,0 +1,28 @@
+{
+  "ChannelOrderNo": "CE-INV-ORD",
+  "MerchantOrderNo": "7001",
+  "CreatedAt": "2025-01-15T12:00:00Z",
+  "Status": "SHIPPED",
+  "CurrencyCode": "EUR",
+  "TotalInclVat": 120,
+  "ShippingCostsExclVat": 4,
+  "PaymentMethod": "ideal",
+  "BillingAddress": {
+    "FirstName": "Bo",
+    "LastName": "B",
+    "Line1": "Street 1",
+    "ZipCode": "1234",
+    "City": "Amsterdam",
+    "CountryIso": "NL"
+  },
+  "Lines": [
+    {
+      "Quantity": 1,
+      "MerchantProductNo": "CE-I",
+      "Description": "Line",
+      "UnitPriceExclVat": 100,
+      "LineTotalExclVat": 100,
+      "VatRate": 20
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "marketplace_order_id": "LO-INV-1",
+  "marketplace_order_date": "2025-01-15T12:00:00Z",
+  "lengow_status": "shipped",
+  "currency": "EUR",
+  "total_order": "100.00",
+  "shipping": "5.00",
+  "invoice_number": "INV-LG-100",
+  "billing_address": {
+    "full_name": "Jane Doe",
+    "first_line": "1 Rue Test",
+    "zipcode": "75001",
+    "city": "Paris",
+    "common_country_iso_a2": "FR"
+  },
+  "packages": [
+    {
+      "delivery": {},
+      "cart": [
+        {
+          "marketplace_product_id": "MP1",
+          "title": "Widget",
+          "quantity": 1,
+          "amount": "100.00",
+          "merchant_product_id": { "id": "SKU-W" }
+        }
+      ]
+    }
+  ],
+  "payments": [{ "id": 999, "type": "card" }]
+}

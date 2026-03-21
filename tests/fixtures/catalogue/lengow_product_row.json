@@ -1,0 +1,9 @@
+{
+  "sku": "LG-1",
+  "title": "Lengow item",
+  "ean13": "4006381333931",
+  "price": "12,50",
+  "brand_name": "LenBrand",
+  "image_url": "https://cdn.example/p.jpg",
+  "custom_attr": "visible"
+}

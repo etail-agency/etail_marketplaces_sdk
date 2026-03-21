@@ -1,0 +1,31 @@
+{
+  "id": 99,
+  "reference": "SF-REF",
+  "createdAt": "2025-01-15T12:00:00Z",
+  "status": "new",
+  "payment": {
+    "totalAmount": "90.00",
+    "shippingAmount": "10.00",
+    "currency": "EUR"
+  },
+  "billingAddress": {
+    "firstName": "Ann",
+    "lastName": "Bee",
+    "street": "Street 1",
+    "postalCode": "1000",
+    "city": "Brussels",
+    "country": "BE"
+  },
+  "shippingAddress": {},
+  "_embedded": { "channel": { "id": 7, "name": "Cool Channel" } },
+  "commission": "3.00",
+  "items": [
+    {
+      "reference": "REF1",
+      "name": "Item",
+      "quantity": 1,
+      "price": "90.00",
+      "commission": "1.00"
+    }
+  ]
+}

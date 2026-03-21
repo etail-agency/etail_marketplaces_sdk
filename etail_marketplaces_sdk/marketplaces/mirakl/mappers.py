@@ -14,11 +14,13 @@ canonical model.
 
 from __future__ import annotations
 
+import json
 import random
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
+from etail_marketplaces_sdk.core.decimal_utils import optional_decimal
 from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
@@ -29,6 +31,19 @@ from etail_marketplaces_sdk.models.stock import StockLevel
 # OR11 order states that mean the order has been shipped and an invoice
 # should be generated.
 SHIPPED_STATUSES = {"SHIPPING", "SHIPPED", "TO_COLLECT", "RECEIVED", "CLOSED"}
+
+
+def _mirakl_marketplace_name(raw: dict[str, Any]) -> Optional[str]:
+    """OR11 ``channel.label`` (preferred) or ``channel.code``; handles dict or JSON string."""
+    ch = raw.get("channel")
+    if isinstance(ch, str) and ch.strip().startswith("{"):
+        try:
+            ch = json.loads(ch)
+        except (json.JSONDecodeError, TypeError):
+            ch = None
+    if isinstance(ch, dict):
+        return ch.get("label") or ch.get("code")
+    return None
 
 
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
@@ -129,6 +144,8 @@ def map_order(
         shipping_address=_map_address(shipping) if shipping else None,
         created_date=created_at,
         updated_date=updated_at,
+        marketplace_name=_mirakl_marketplace_name(raw),
+        commission=optional_decimal(raw.get("total_commission")),
         raw=raw,
     )
 
@@ -152,6 +169,10 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
         taxes = line.get("taxes") or []
         vat_rate = Decimal(str(taxes[0].get("rate") or "0")) if taxes else Decimal("0")
 
+        line_commission = optional_decimal(line.get("total_commission"))
+        if line_commission is None:
+            line_commission = optional_decimal(line.get("commission_fee"))
+
         items.append(
             OrderItem(
                 reference=line.get("offer_sku") or "",
@@ -163,6 +184,7 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
                 total_price_excl_vat=Decimal("0"),
                 total_price_incl_vat=line_total if line_total else unit_incl * quantity,
                 sku=line.get("offer_sku") or "",
+                commission=line_commission,
             )
         )
     return items

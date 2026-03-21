@@ -14,6 +14,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
+from etail_marketplaces_sdk.core.decimal_utils import optional_decimal
 from etail_marketplaces_sdk.models.address import Address
 from etail_marketplaces_sdk.models.brand import Brand
 from etail_marketplaces_sdk.models.invoice import Invoice, InvoiceAddress, InvoiceItem
@@ -37,6 +38,28 @@ def _build_name(data: dict[str, Any]) -> str:
     if company and full:
         return f"{full} ({company})"
     return company or full
+
+
+def _shoppingfeed_marketplace_name(raw: dict[str, Any]) -> Optional[str]:
+    """Channel display name from ``_embedded.channel.name`` (list/detail order payloads)."""
+    ch = (raw.get("_embedded") or {}).get("channel") or {}
+    name = ch.get("name")
+    return str(name).strip() if name else None
+
+
+def _shoppingfeed_order_commission(raw: dict[str, Any]) -> Optional[Decimal]:
+    """Order-level ``commission`` or sum of per-line ``items[].commission``."""
+    top = optional_decimal(raw.get("commission"))
+    if top is not None:
+        return top
+    total = Decimal("0")
+    found = False
+    for item in raw.get("items", []) or []:
+        c = optional_decimal(item.get("commission"))
+        if c is not None:
+            total += c
+            found = True
+    return total if found else None
 
 
 def _map_address(data: dict[str, Any]) -> Address:
@@ -191,6 +214,8 @@ def map_order(
         shipping_address=_map_address(shipping) if shipping and shipping != billing else None,
         created_date=created_at,
         updated_date=updated_at,
+        marketplace_name=_shoppingfeed_marketplace_name(raw),
+        commission=_shoppingfeed_order_commission(raw),
         raw=raw,
     )
 
@@ -211,6 +236,7 @@ def _map_order_items(raw: dict[str, Any]) -> list[OrderItem]:
                 total_price_excl_vat=Decimal("0"),
                 total_price_incl_vat=price_incl * quantity,
                 sku=item.get("reference", ""),
+                commission=optional_decimal(item.get("commission")),
             )
         )
     return items

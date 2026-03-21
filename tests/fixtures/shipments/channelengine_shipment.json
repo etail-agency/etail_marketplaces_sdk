@@ -1,0 +1,14 @@
+{
+  "ChannelOrderNo": "CE-TRK",
+  "MerchantShipmentNo": "MS-TRK-1",
+  "CreatedAt": "2025-01-15T14:00:00Z",
+  "Method": "DHL",
+  "TrackTraceNo": "JJD123",
+  "Lines": [
+    {
+      "Quantity": 1,
+      "MerchantProductNo": "W-SKU",
+      "ChannelProductNo": "CHAN-1"
+    }
+  ]
+}

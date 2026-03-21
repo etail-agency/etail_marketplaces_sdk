@@ -1,0 +1,10 @@
+{
+  "MerchantProductNo": "P-SKU",
+  "Name": "CE Product",
+  "Ean": "1234567890123",
+  "Price": 29.99,
+  "Brand": "Acme",
+  "ImageUrl": "https://example.com/a.jpg",
+  "ExtraData": [{ "Key": "foo", "Value": "bar" }],
+  "IsActive": true
+}

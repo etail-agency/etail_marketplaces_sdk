@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [Unreleased]
+
+## [0.3.2] - 2026-03-12
+
+### Added
+
+- **`Order.marketplace_name`** and **`Order.commission`**: Optional canonical fields populated from platform payloads where available (`Lengow`, `ShoppingFeed`, `ChannelEngine` orders + shipments, `Mirakl`, `ManoMano`).
+- **`OrderItem.commission`**: Optional line-level commission; populated from `Lengow` / `ShoppingFeed` line payloads, ChannelEngine `FeeFixed`, Mirakl `total_commission` or `commission_fee`, ManoMano product commission fields.
+- **`core.decimal_utils.optional_decimal`**: Shared safe parsing helper for mapper numeric fields.
+- **Automated tests** (`tests/`): mapper smoke tests for **orders**, **stock**, **catalogue**, **invoices**, and **shipments**; unit tests for `optional_decimal`; ChannelEngine client tests using **`responses`** (`GET /v2/orders` and `GET /v2/products` pagination, HTTP 429 → `RateLimitError`). JSON fixtures live under `tests/fixtures/` (`orders`, `stock`, `catalogue`, `invoices`, `shipments`).
+- **Dev dependency**: `responses` (HTTP mocking for client tests).
+
+### Changed
+
+- **CI** (`.github/workflows/ci.yml`): runs `uv run pytest` after Ruff.
+
+### Documentation
+
+- **README**, **docs/index.md**, **docs/architecture.md**, **CONTRIBUTING.md**: document how to run the test suite; **docs/api/core.md**: reference `decimal_utils.optional_decimal`.
+
 ## [0.3.1] - 2026-03-12
 
 ### Added

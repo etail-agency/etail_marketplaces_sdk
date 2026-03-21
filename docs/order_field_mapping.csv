@@ -23,6 +23,8 @@ ORDER — top-level,,,,,,
 ,created_date,datetime,marketplace_order_date,createdAt,CreatedAt,created_date,Mapped same as order_date
 ,updated_date,datetime,updated_at,updatedAt,UpdatedAt,last_updated_date,
 ,id,int,X,X,X,X,Internal DB auto-increment — not populated by any mapper
+,marketplace_name,str,marketplace,_embedded.channel.name,ChannelName (→ GlobalChannelName),channel.label (→ code),ManoMano: marketplace_name / channel_name / sales_channel / channel.name
+,commission,Decimal,commission,commission (→ Σ items[].commission),TotalFee (→ Σ Lines[].FeeFixed),total_commission,ManoMano: commission (→ Σ products[].commission); CE shipments: Σ line FeeFixed only
 ,,,,,,
 ORDER ITEM — (items / packages[].cart / Lines / order_lines),,,,,,
 ,reference,str,packages[].cart[].marketplace_product_id,items[].reference,Lines[].MerchantProductNo (→ ChannelProductNo),order_lines[].offer_sku,Platform product identifier

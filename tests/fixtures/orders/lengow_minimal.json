@@ -1,0 +1,34 @@
+{
+  "marketplace_order_id": "LO-1",
+  "marketplace_order_date": "2025-01-15T12:00:00Z",
+  "lengow_status": "new",
+  "currency": "EUR",
+  "total_order": "100.00",
+  "shipping": "5.00",
+  "original_total_order": "100.00",
+  "original_shipping": "5.00",
+  "marketplace": "amazon_fr",
+  "commission": "12.50",
+  "billing_address": {
+    "full_name": "Jane Doe",
+    "first_line": "1 Rue Test",
+    "zipcode": "75001",
+    "city": "Paris",
+    "common_country_iso_a2": "FR"
+  },
+  "packages": [
+    {
+      "delivery": {},
+      "cart": [
+        {
+          "marketplace_product_id": "MP1",
+          "title": "Widget",
+          "quantity": 2,
+          "amount": "40.00",
+          "merchant_product_id": { "id": "SKU-W" },
+          "commission": "1.25"
+        }
+      ]
+    }
+  ]
+}
